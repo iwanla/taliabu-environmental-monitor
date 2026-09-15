@@ -1,0 +1,59 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DAS Sibela",
+        "type": "watershed",
+        "area_km2": 420,
+        "source": "placeholder",
+        "version": "0.1.0"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [124.65, -1.62],
+            [124.78, -1.58],
+            [124.88, -1.65],
+            [124.90, -1.80],
+            [124.88, -1.95],
+            [124.82, -2.05],
+            [124.72, -2.08],
+            [124.65, -2.00],
+            [124.60, -1.88],
+            [124.62, -1.75],
+            [124.65, -1.62]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DAS Bobong",
+        "type": "watershed",
+        "area_km2": 280,
+        "source": "placeholder",
+        "version": "0.1.0"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [124.45, -1.68],
+            [124.55, -1.60],
+            [124.65, -1.62],
+            [124.62, -1.75],
+            [124.60, -1.88],
+            [124.55, -1.92],
+            [124.48, -1.88],
+            [124.42, -1.80],
+            [124.45, -1.68]
+          ]
+        ]
+      }
+    }
+  ]
+}

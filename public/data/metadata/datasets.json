@@ -1,0 +1,86 @@
+[
+  {
+    "id": "taliabu-boundary",
+    "category": "reference",
+    "source": "BIG - Badan Informasi Geospasial",
+    "sourceUrl": "https://geoservices.big.go.id/gis/rest/services/DISIGT/BatasWilayah/FeatureServer/0",
+    "retrievedAt": "2026-09-15",
+    "sourceUpdatedAt": null,
+    "version": "1.0.0",
+    "refreshPolicy": "manual",
+    "license": null,
+    "notes": "Pulau Taliabu main island boundary from BIG 1:25000 scale"
+  },
+  {
+    "id": "administrative-boundaries",
+    "category": "reference",
+    "source": "BIG - Badan Informasi Geospasial",
+    "sourceUrl": "https://geoservices.big.go.id/gis/rest/services/DISIGT/BatasWilayah/FeatureServer/0",
+    "retrievedAt": "2026-09-15",
+    "sourceUpdatedAt": null,
+    "version": "1.0.0",
+    "refreshPolicy": "manual",
+    "license": null,
+    "notes": "Kabupaten Pulau Taliabu administrative boundary from BIG 1:25000 scale"
+  },
+  {
+    "id": "rivers",
+    "category": "reference",
+    "source": "hydrology reference",
+    "sourceUrl": null,
+    "retrievedAt": "2026-09-11",
+    "sourceUpdatedAt": null,
+    "version": "2026-09",
+    "refreshPolicy": "manual",
+    "license": null,
+    "notes": "Major river network"
+  },
+  {
+    "id": "watersheds",
+    "category": "reference",
+    "source": "hydrology reference",
+    "sourceUrl": null,
+    "retrievedAt": "2026-09-11",
+    "sourceUpdatedAt": null,
+    "version": "2026-09",
+    "refreshPolicy": "manual",
+    "license": null,
+    "notes": "Watershed boundaries"
+  },
+  {
+    "id": "settlements",
+    "category": "periodic",
+    "source": "population reference",
+    "sourceUrl": null,
+    "retrievedAt": "2026-09-11",
+    "sourceUpdatedAt": null,
+    "version": "2026-09",
+    "refreshPolicy": "quarterly",
+    "license": null,
+    "notes": "Settlement locations"
+  },
+  {
+    "id": "mining-iup",
+    "category": "periodic",
+    "source": "ESDM/MOMI",
+    "sourceUrl": null,
+    "retrievedAt": "2026-09-11",
+    "sourceUpdatedAt": null,
+    "version": "2026-09-11",
+    "refreshPolicy": "monthly",
+    "license": null,
+    "notes": "IUP/WIUP boundary snapshot"
+  },
+  {
+    "id": "baseline-coastline",
+    "category": "reference",
+    "source": "BIG - Badan Informasi Geospasial",
+    "sourceUrl": "https://geoservices.big.go.id/gis/rest/services/DISIGT/BatasWilayah/FeatureServer/0",
+    "retrievedAt": "2026-09-15",
+    "sourceUpdatedAt": null,
+    "version": "1.0.0",
+    "refreshPolicy": "manual",
+    "license": null,
+    "notes": "Coastline extracted from BIG 1:25000 boundary data"
+  }
+]

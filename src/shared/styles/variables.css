@@ -1,0 +1,82 @@
+:root {
+  --ink: #14231D;
+  --ink-soft: #3E4C44;
+  --ink-faint: #576553;
+  --paper: #EDEFE4;
+  --paper-raised: #F7F8F1;
+  --paper-sunk: #E3E5D6;
+  --line: #D2D5C1;
+  --line-strong: #B9BDA5;
+
+  --cat-satellite: #5B5E8F;
+  --cat-environment: #46743A;
+  --cat-mining: #B4652A;
+  --cat-hydrology: #1F7A8C;
+  --cat-coastal: #B8901E;
+  --cat-terrain: #8A7048;
+
+  --status-good: #3F7A4C;
+  --status-medium: #B98A22;
+  --status-low: #A63F2B;
+  --status-off: #8A8F7E;
+  --accent-alert: #C1432B;
+
+  --water: #1B3A4B;
+  --water-deep: #122834;
+
+  --font-display: 'Archivo', sans-serif;
+  --font-body: 'Archivo', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+button, input {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--cat-environment);
+  color: #fff;
+}
+
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--cat-hydrology);
+  outline-offset: 2px;
+}

@@ -1,0 +1,65 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sungai Sibela",
+        "type": "river",
+        "order": 2,
+        "source": "placeholder",
+        "version": "0.1.0"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [124.72, -1.68],
+          [124.74, -1.75],
+          [124.76, -1.82],
+          [124.78, -1.88],
+          [124.80, -1.95],
+          [124.82, -2.02]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sungai Bobong",
+        "type": "river",
+        "order": 2,
+        "source": "placeholder",
+        "version": "0.1.0"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [124.55, -1.65],
+          [124.58, -1.72],
+          [124.60, -1.80],
+          [124.62, -1.88]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sungai Lede",
+        "type": "river",
+        "order": 3,
+        "source": "placeholder",
+        "version": "0.1.0"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [124.62, -1.62],
+          [124.64, -1.70],
+          [124.65, -1.78],
+          [124.66, -1.85],
+          [124.68, -1.92]
+        ]
+      }
+    }
+  ]
+}

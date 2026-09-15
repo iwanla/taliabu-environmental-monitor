@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taliabu Environmental Monitor — UI (Draft)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:        #14231D;
+    --ink-soft:   #3E4C44;
+    --ink-faint:  #576553;
+    --paper:      #EDEFE4;
+    --paper-raised:#F7F8F1;
+    --paper-sunk: #E3E5D6;
+    --line:       #D2D5C1;
+    --line-strong:#B9BDA5;
+
+    --cat-satellite:   #5B5E8F;
+    --cat-environment: #46743A;
+    --cat-mining:      #B4652A;
+    --cat-hydrology:   #1F7A8C;
+    --cat-coastal:     #B8901E;
+    --cat-terrain:     #8A7048;
+
+    --status-good:  #3F7A4C;
+    --status-medium:#B98A22;
+    --status-low:   #A63F2B;
+    --status-off:   #8A8F7E;
+    --accent-alert: #C1432B;
+
+    --water: #1B3A4B;
+    --water-deep:#122834;
+
+    --font-display:'Archivo', sans-serif;
+    --font-body:'Archivo', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+    --radius-sm:3px; --radius-md:5px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--font-body); font-size:14px; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4,h5{font-family:var(--font-display); font-weight:600; margin:0;}
+  .mono{font-family:var(--font-mono);}
+  button, input{font-family:inherit;}
+  ::selection{background:var(--cat-environment); color:#fff;}
+  button:focus-visible, input:focus-visible, [tabindex]:focus-visible{outline:2px solid var(--cat-hydrology); outline-offset:2px;}
+
+  /* =============== app shell =============== */
+  .app{
+    display:grid;
+    grid-template-columns:252px 1fr 296px;
+    grid-template-rows:48px minmax(360px,1fr) auto auto;
+    grid-template-areas:
+      "header header header"
+      "layers map inspector"
+      "timeline timeline timeline"
+      "metrics metrics metrics";
+    height:100vh;
+  }
+
+  /* ---------- header ---------- */
+  .header{
+    grid-area:header;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 18px;
+    background:var(--ink); color:#fff;
+    border-bottom:1px solid #0B140F;
+  }
+  .header .brand{display:flex; align-items:center; gap:10px;}
+  .header .brand .mark{width:9px; height:9px; border-radius:50%; background:var(--cat-environment);}
+  .header .brand b{font-size:14px; font-weight:600; letter-spacing:.01em;}
+  .header .mid{display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12px; color:#C7CDBE;}
+  .header .mid b{color:#fff; font-weight:500;}
+  .header .actions{display:flex; gap:8px;}
+  .btn{
+    font-family:var(--font-body); font-size:13px; font-weight:600;
+    padding:7px 13px; border-radius:var(--radius-sm); border:1px solid transparent; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px; line-height:1;
+  }
+  .btn-primary{background:var(--cat-environment); color:#fff;}
+  .btn-ghost-dark{background:transparent; color:#E7E9DD; border-color:#3A473F;}
+  .btn-secondary{background:var(--paper-raised); color:var(--ink); border-color:var(--line-strong);}
+  .btn-ghost{background:transparent; color:var(--ink-soft); border-color:transparent;}
+  .btn-icon{width:30px; height:30px; padding:0; justify-content:center; background:var(--paper-raised); border:1px solid var(--line-strong); border-radius:var(--radius-sm);}
+
+  /* ---------- layers (left) ---------- */
+  .layers{
+    grid-area:layers;
+    background:var(--paper-raised);
+    border-right:1px solid var(--line);
+    overflow-y:auto;
+    padding-bottom:16px;
+  }
+  .panel-title{
+    padding:14px 16px 8px; font-size:12.5px; color:var(--ink-faint); font-family:var(--font-mono);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .basemap-row{display:flex; gap:6px; padding:0 16px 12px;}
+  .basemap-row .tab{flex:1; text-align:center; font-size:11.5px; padding:6px 4px; border-radius:var(--radius-sm); background:var(--paper-sunk); color:var(--ink-soft); cursor:pointer;}
+  .basemap-row .tab.active{background:var(--ink); color:#fff;}
+
+  .cat-header{
+    font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);
+    padding:12px 16px 4px; display:flex; align-items:center; gap:7px;
+  }
+  .cat-header .dot{width:7px; height:7px; border-radius:50%;}
+  .layer-row{display:flex; align-items:center; gap:9px; padding:7px 16px; border-top:1px solid var(--line);}
+  .layer-row:first-of-type{border-top:none;}
+  .layer-row .name{flex:1; font-size:13px;}
+  .layer-row .name .sub{display:block; font-size:10.5px; color:var(--ink-faint); font-family:var(--font-mono); margin-top:1px;}
+  .layer-row .opacity{width:52px; accent-color:var(--ink-soft);}
+  .switch{position:relative; width:30px; height:17px; flex:none;}
+  .switch input{opacity:0; width:100%; height:100%; margin:0; position:absolute; cursor:pointer;}
+  .switch .track{position:absolute; inset:0; background:var(--line-strong); border-radius:20px; transition:background .15s;}
+  .switch .thumb{position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:#fff; transition:transform .15s;}
+  .switch input:checked + .track{background:var(--status-good);}
+  .switch input:checked + .track + .thumb{transform:translateX(13px);}
+
+  .aoi-cta{margin:16px; padding:12px; border:1px dashed var(--line-strong); border-radius:var(--radius-md); text-align:center;}
+  .aoi-cta p{margin:0 0 8px; font-size:12px; color:var(--ink-faint);}
+
+  /* ---------- map ---------- */
+  .map{
+    grid-area:map;
+    position:relative;
+    background:linear-gradient(160deg,var(--water) 0%,var(--water-deep) 100%);
+    overflow:hidden;
+  }
+  .map svg{position:absolute; inset:0; width:100%; height:100%;}
+  .map-controls{position:absolute; top:14px; right:14px; display:flex; flex-direction:column; gap:6px;}
+  .map-topleft{position:absolute; top:14px; left:14px; display:flex; gap:8px; align-items:center;}
+  .chip{
+    font-family:var(--font-mono); font-size:11px; padding:5px 10px; border-radius:20px;
+    background:rgba(247,248,241,.92); color:var(--ink); border:1px solid rgba(255,255,255,.4);
+  }
+  .chip.sar{background:rgba(91,94,143,.92); color:#fff;}
+  .map-bottom{position:absolute; left:14px; bottom:14px; display:flex; gap:14px; align-items:flex-end;}
+  .legend-float{
+    background:rgba(247,248,241,.95); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:10px 13px; font-size:11.5px; display:flex; flex-direction:column; gap:5px; min-width:150px;
+  }
+  .legend-float .row{display:flex; align-items:center; gap:7px; color:var(--ink-soft);}
+  .legend-float .sw{width:11px; height:11px; border-radius:3px; flex:none;}
+  .scale{display:flex; flex-direction:column; align-items:flex-start; gap:3px;}
+  .scale .bar{width:80px; height:4px; background:rgba(247,248,241,.95); border-radius:2px;}
+  .scale span{font-family:var(--font-mono); font-size:10.5px; color:#E7E9DD;}
+
+  /* ---------- inspector (right) ---------- */
+  .inspector{
+    grid-area:inspector;
+    background:var(--paper-raised);
+    border-left:1px solid var(--line);
+    overflow-y:auto;
+  }
+  .insp-block{padding:14px 16px; border-bottom:1px solid var(--line);}
+  .insp-block h5{font-size:13.5px; margin-bottom:2px;}
+  .insp-block .sub{font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-bottom:10px;}
+  .metric-row{display:flex; justify-content:space-between; padding:6px 0; border-top:1px solid var(--line); font-size:12.5px;}
+  .metric-row:first-of-type{border-top:none;}
+  .metric-row .v{font-family:var(--font-mono); color:var(--ink);}
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono); font-size:11px;
+    padding:2px 8px; border-radius:20px;
+  }
+  .badge-low{background:#F3E1DB; color:var(--status-low);}
+  .badge .dot{width:6px; height:6px; border-radius:50%;}
+  .hist-item{display:flex; justify-content:space-between; padding:6px 0; font-size:12px; color:var(--ink-soft); border-top:1px solid var(--line);}
+  .hist-item:first-of-type{border-top:none;}
+  .hist-item .d{font-family:var(--font-mono); color:var(--ink-faint);}
+  .evidence dt{color:var(--ink-faint); float:left; width:88px; clear:left; font-family:var(--font-mono); font-size:11px;}
+  .evidence dd{margin:0 0 6px 88px; font-family:var(--font-mono); font-size:11px; color:var(--ink);}
+  .evidence{margin:0;}
+
+  /* ---------- timeline ---------- */
+  .timeline{
+    grid-area:timeline;
+    background:var(--paper-raised);
+    border-top:1px solid var(--line);
+    padding:12px 20px 10px;
+    display:flex; align-items:center; gap:24px;
+  }
+  .timeline .tabs{display:flex; gap:3px; background:var(--paper-sunk); padding:3px; border-radius:var(--radius-sm); flex:none;}
+  .timeline .tab{font-family:var(--font-mono); font-size:11.5px; padding:5px 10px; border-radius:3px; color:var(--ink-soft); cursor:pointer;}
+  .timeline .tab.active{background:var(--paper-raised); color:var(--ink); box-shadow:0 1px 2px rgba(20,35,29,.12);}
+  .timeline .track-wrap{flex:1; position:relative;}
+  .timeline .track{position:relative; height:4px; background:var(--line-strong); border-radius:2px; margin:10px 4px 4px;}
+  .timeline .tick{position:absolute; top:-3px; width:2px; height:10px; background:var(--line-strong);}
+  .timeline .handle{position:absolute; top:50%; transform:translate(-50%,-50%); width:13px; height:13px; border-radius:50%; background:var(--cat-satellite); border:2px solid #fff; box-shadow:0 0 0 1px var(--cat-satellite);}
+  .timeline .handle.compare{background:var(--cat-mining); box-shadow:0 0 0 1px var(--cat-mining);}
+  .timeline .labels{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:10.5px; color:var(--ink-faint);}
+  .timeline .date-readout{font-family:var(--font-mono); font-size:12px; color:var(--ink); flex:none; text-align:right; min-width:140px;}
+  .timeline .date-readout .cmp{color:var(--cat-mining);}
+
+  /* ---------- metrics / alerts row ---------- */
+  .metrics{
+    grid-area:metrics;
+    background:var(--paper);
+    border-top:1px solid var(--line);
+    padding:14px 20px 18px;
+    display:grid;
+    grid-template-columns:220px 1fr 1fr;
+    gap:16px;
+  }
+  .trend-card{background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius-md); padding:12px 14px;}
+  .trend-card h5{font-size:12.5px; margin-bottom:8px;}
+  .trend-card svg{width:100%; height:46px; display:block;}
+  .trend-card .foot{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-top:4px;}
+  .alert{
+    display:flex; gap:10px; border:1px solid var(--line); background:var(--paper-raised);
+    border-radius:var(--radius-md); padding:11px 13px;
+  }
+  .alert .mark{width:7px; height:7px; border-radius:50%; background:var(--accent-alert); margin-top:5px; flex:none;}
+  .alert h5{font-size:12.5px; margin-bottom:2px;}
+  .alert p{margin:0; font-size:11.5px; color:var(--ink-soft);}
+  .alert .meta{font-family:var(--font-mono); font-size:10.5px; color:#8A5140; margin-top:5px;}
+
+  .draft-banner{
+    background:var(--ink); color:#C7CDBE; text-align:center;
+    font-family:var(--font-mono); font-size:11px; padding:6px 12px;
+    letter-spacing:.02em;
+  }
+  .draft-banner b{color:#fff;}
+
+  @media (max-width: 1080px){
+    .app{
+      grid-template-columns:1fr;
+      grid-template-rows:48px 280px auto auto auto auto;
+      grid-template-areas:
+        "header"
+        "map"
+        "layers"
+        "inspector"
+        "timeline"
+        "metrics";
+      height:auto;
+    }
+    .layers, .inspector{border:none; border-top:1px solid var(--line); max-height:320px;}
+    .metrics{grid-template-columns:1fr;}
+    .timeline{flex-wrap:wrap;}
+  }
+</style>
+</head>
+<body>
+
+<div class="draft-banner"><b>DRAFT</b> — without direction · static mockup</div>
+
+<div class="app">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="header">
+    <div class="brand"><span class="mark"></span><b>Taliabu Environmental Monitor</b></div>
+    <div class="mid">
+      <span>Latest acquisition</span>
+      <b class="mono">2026-09-09</b>
+      <span style="color:#4B584F;">·</span>
+      <span>cloud</span><b class="mono">7.2%</b>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost-dark">Compare</button>
+      <button class="btn btn-primary">Export</button>
+    </div>
+  </header>
+
+  <!-- ===================== LAYERS ===================== -->
+  <aside class="layers">
+    <div class="panel-title">Basemap</div>
+    <div class="basemap-row">
+      <div class="tab active">Vector</div>
+      <div class="tab">Satellite</div>
+      <div class="tab">Minimal</div>
+    </div>
+
+    <div class="cat-header"><span class="dot" style="background:var(--cat-satellite)"></span>Satellite</div>
+    <div class="layer-row">
+      <span class="name">True color<span class="sub">sentinel-2-l2a</span></span>
+      <input class="opacity" type="range" min="0" max="100" value="85">
+      <label class="switch"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label>
+    </div>
+    <div class="layer-row">
+      <span class="name">SAR (Sentinel-1)<span class="sub">cloud-penetrating</span></span>
+      <input class="opacity" type="range" min="0" max="100" value="60">
+      <label class="switch"><input type="checkbox"><span class="track"></span><span class="thumb"></span></label>
+    </div>
+
+    <div class="cat-header"><span class="dot" style="background:var(--cat-environment)"></span>Environment</div>
+    <div class="layer-row">
+      <span class="name">NDVI<span class="sub">vegetation index</span></span>
+      <input class="opacity" type="range" min="0" max="100" value="75">
+      <label class="switch"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label>
+    </div>
+    <div class="layer-row">
+      <span class="name">Vegetation loss</span>
+      <input class="opacity" type="range" min="0" max="100" value="100">
+      <label class="switch"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label>
+    </div>
+
+    <div class="cat-header"><span class="dot" style="background:var(--cat-mining)"></span>Mining</div>
+    <div class="layer-row">
+      <span class="name">Permit boundaries<span class="sub">ESDM / MOMI</span></span>
+      <input class="opacity" type="range" min="0" max="100" value="100">
+      <label class="switch"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label>
+    </div>
+    <div class="layer-row">
+      <span class="name">Surface disturbance</span>
+      <input class="opacity" type="range" min="0" max="100" value="90">
+      <label class="switch"><input type="checkbox"><span class="track"></span><span class="thumb"></span></label>
+    </div>
+
+    <div class="cat-header"><span class="dot" style="background:var(--cat-hydrology)"></span>Hydrology</div>
+    <div class="layer-row">
+      <span class="name">Rivers &amp; watershed</span>
+      <input class="opacity" type="range" min="0" max="100" value="90">
+      <label class="switch"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label>
+    </div>
+
+    <div class="cat-header"><span class="dot" style="background:var(--cat-coastal)"></span>Coastal</div>
+    <div class="layer-row">
+      <span class="name">Coastline change</span>
+      <input class="opacity" type="range" min="0" max="100" value="80">
+      <label class="switch"><input type="checkbox"><span class="track"></span><span class="thumb"></span></label>
+    </div>
+
+    <div class="cat-header"><span class="dot" style="background:var(--cat-terrain)"></span>Terrain</div>
+    <div class="layer-row">
+      <span class="name">Hillshade</span>
+      <input class="opacity" type="range" min="0" max="100" value="50">
+      <label class="switch"><input type="checkbox"><span class="track"></span><span class="thumb"></span></label>
+    </div>
+
+    <div class="aoi-cta">
+      <p>Draw an area of interest to get vegetation, water and proximity statistics.</p>
+      <button class="btn btn-secondary" style="width:100%; justify-content:center;">Draw AOI</button>
+    </div>
+  </aside>
+
+  <!-- ===================== MAP ===================== -->
+  <div class="map">
+    <svg viewBox="0 0 800 640" preserveAspectRatio="xMidYMid slice">
+      <!-- water texture -->
+      <rect x="0" y="0" width="800" height="640" fill="url(#waterGrad)"/>
+      <defs>
+        <linearGradient id="waterGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#1B3A4B"/>
+          <stop offset="1" stop-color="#0F2530"/>
+        </linearGradient>
+      </defs>
+      <g opacity="0.12" stroke="#EDEFE4" stroke-width="1">
+        <path d="M0,80 H800 M0,180 H800 M0,280 H800 M0,380 H800 M0,480 H800 M0,580 H800"/>
+        <path d="M80,0 V640 M200,0 V640 M320,0 V640 M440,0 V640 M560,0 V640 M680,0 V640"/>
+      </g>
+
+      <!-- island landmass -->
+      <path d="M180,120 C260,90 340,95 400,130 C470,150 540,140 590,180
+               C640,210 660,270 630,320 C660,360 650,420 600,450
+               C580,500 520,530 460,520 C400,540 340,530 300,500
+               C240,510 180,480 160,430 C120,410 100,360 130,320
+               C100,280 110,220 150,190 C140,160 155,135 180,120 Z"
+            fill="#E9E6D5" stroke="#C9C7B0" stroke-width="2"/>
+
+      <!-- vegetation zones (NDVI-ish) -->
+      <path d="M220,180 C280,160 340,170 380,200 C400,240 380,280 330,290
+               C280,300 230,280 210,240 C200,210 205,195 220,180 Z" fill="#5C8A4C" opacity="0.85"/>
+      <path d="M420,230 C480,220 540,240 560,280 C570,320 540,360 490,360
+               C440,360 400,330 400,290 C400,260 405,245 420,230 Z" fill="#46743A" opacity="0.85"/>
+      <path d="M280,360 C340,350 400,370 410,410 C415,450 380,480 330,470
+               C290,460 260,430 260,400 C260,380 265,368 280,360 Z" fill="#5C8A4C" opacity="0.8"/>
+
+      <!-- rivers -->
+      <path d="M470,150 C450,220 430,260 400,300 C370,340 360,400 340,470"
+            fill="none" stroke="#3FA0AA" stroke-width="3.5" opacity="0.9"/>
+      <path d="M400,300 C370,320 340,330 300,340" fill="none" stroke="#3FA0AA" stroke-width="2.5" opacity="0.8"/>
+
+      <!-- mining permit boundary -->
+      <polygon points="470,240 540,235 555,300 520,340 465,325 455,275"
+               fill="#B4652A" fill-opacity="0.18" stroke="#B4652A" stroke-width="2" stroke-dasharray="5,3"/>
+
+      <!-- surface disturbance (change) -->
+      <polygon points="485,255 520,252 528,285 500,300 480,282" fill="#C1432B" fill-opacity="0.55" stroke="#C1432B" stroke-width="1.5"/>
+
+      <!-- AOI selection -->
+      <polygon points="455,260 500,255 512,300 470,315" fill="none" stroke="#14231D" stroke-width="1.6" stroke-dasharray="4,3"/>
+      <circle cx="455" cy="260" r="3.5" fill="#14231D"/>
+      <circle cx="500" cy="255" r="3.5" fill="#14231D"/>
+      <circle cx="512" cy="300" r="3.5" fill="#14231D"/>
+      <circle cx="470" cy="315" r="3.5" fill="#14231D"/>
+
+      <!-- settlement markers -->
+      <circle cx="330" cy="440" r="4" fill="#F7F8F1" stroke="#14231D" stroke-width="1.5"/>
+      <circle cx="260" cy="320" r="4" fill="#F7F8F1" stroke="#14231D" stroke-width="1.5"/>
+    </svg>
+
+    <div class="map-topleft">
+      <span class="chip">optical · L2A</span>
+      <span class="chip sar">SAR available</span>
+    </div>
+
+    <div class="map-controls">
+      <button class="btn-icon" title="Zoom in">+</button>
+      <button class="btn-icon" title="Zoom out">–</button>
+      <button class="btn-icon" title="Reset to Taliabu extent">⟲</button>
+      <button class="btn-icon" title="Locate me">◎</button>
+    </div>
+
+    <div class="map-bottom">
+      <div class="legend-float">
+        <div class="row"><span class="sw" style="background:#B4652A"></span>Mining permit (IUP)</div>
+        <div class="row"><span class="sw" style="background:#C1432B"></span>Surface disturbance</div>
+        <div class="row"><span class="sw" style="background:#46743A"></span>Vegetation (NDVI)</div>
+        <div class="row"><span class="sw" style="background:#3FA0AA"></span>River / watershed</div>
+      </div>
+      <div class="scale">
+        <div class="bar"></div>
+        <span>2 km</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== INSPECTOR ===================== -->
+  <aside class="inspector">
+    <div class="insp-block">
+      <h5>Selected AOI</h5>
+      <div class="sub">4.2 ha · Sibela watershed</div>
+      <div class="metric-row"><span>Vegetation loss</span><span class="v">−1.8 ha</span></div>
+      <div class="metric-row"><span>Vegetation gain</span><span class="v">+0.3 ha</span></div>
+      <div class="metric-row"><span>Percent change</span><span class="v">−36%</span></div>
+      <div class="metric-row"><span>Nearest river</span><span class="v">210 m</span></div>
+      <div class="metric-row"><span>Permit status</span>
+        <span class="badge badge-low"><span class="dot" style="background:var(--status-low)"></span>outside</span>
+      </div>
+    </div>
+
+    <div class="insp-block">
+      <h5>History</h5>
+      <div class="sub">Recent analyses on this AOI</div>
+      <div class="hist-item"><span>NDVI change</span><span class="d">2026-09-09</span></div>
+      <div class="hist-item"><span>NDVI change</span><span class="d">2026-06-14</span></div>
+      <div class="hist-item"><span>Bare-land scan</span><span class="d">2026-03-02</span></div>
+    </div>
+
+    <div class="insp-block">
+      <h5>Metadata</h5>
+      <div class="sub">Evidence for current selection</div>
+      <dl class="evidence">
+        <dt>Source</dt><dd>Sentinel-2 L2A</dd>
+        <dt>Scene ID</dt><dd>scene-b41f2c</dd>
+        <dt>Acquired</dt><dd>2026-09-09T02:18Z</dd>
+        <dt>Method</dt><dd>NDVI diff</dd>
+        <dt>Quality</dt><dd>medium</dd>
+      </dl>
+    </div>
+
+    <div class="insp-block" style="border-top:2px dashed var(--line-strong); opacity:0.7;">
+
+      <h5>No AOI selected</h5>
+      <div class="sub">Draw an area on the map to view statistics</div>
+      <p style="margin:8px 0 0; font-size:12px; color:var(--ink-faint);">Click "Draw AOI" in the layers panel, then trace a polygon on the map. Vegetation, water, and proximity data will appear here.</p>
+    </div>
+
+    <div class="insp-block" style="border-top:2px dashed var(--line-strong); opacity:0.7;">
+
+      <h5 style="color:var(--status-low);">Analysis failed</h5>
+      <div class="sub">Sentinel-2 scene not available for this date</div>
+      <p style="margin:8px 0 0; font-size:12px; color:var(--ink-faint);">The selected acquisition date has no cloud-free Sentinel-2 L2A scene. Try an adjacent date or switch to SAR layer.</p>
+    </div>
+  </aside>
+
+  <!-- ===================== TIMELINE ===================== -->
+  <div class="timeline">
+    <div class="tabs">
+      <div class="tab">None</div>
+      <div class="tab active">Swipe</div>
+      <div class="tab">Split</div>
+      <div class="tab">Blink</div>
+      <div class="tab">Difference</div>
+    </div>
+    <div class="track-wrap">
+      <div class="track">
+        <span class="tick" style="left:6%"></span>
+        <span class="tick" style="left:30%"></span>
+        <span class="tick" style="left:52%"></span>
+        <span class="tick" style="left:76%"></span>
+        <span class="tick" style="left:96%"></span>
+        <span class="handle compare" style="left:30%"></span>
+        <span class="handle" style="left:76%"></span>
+      </div>
+      <div class="labels"><span>2025-01</span><span>2025-06</span><span>2025-12</span><span>2026-06</span><span>2026-09</span></div>
+    </div>
+    <div class="date-readout">
+      <span class="cmp">2025-06-14</span> vs <span>2026-09-09</span>
+    </div>
+  </div>
+
+  <!-- ===================== METRICS / ALERTS ===================== -->
+  <div class="metrics">
+    <div class="trend-card">
+      <h5>Vegetation trend</h5>
+      <svg viewBox="0 0 200 46" preserveAspectRatio="none">
+        <polyline points="0,10 30,14 60,12 90,22 120,26 150,34 180,30 200,36"
+                  fill="none" stroke="#46743A" stroke-width="2"/>
+      </svg>
+      <div class="foot"><span>Jan</span><span>Sep</span></div>
+    </div>
+
+    <div class="alert">
+      <span class="mark"></span>
+      <div>
+        <h5>Vegetation loss near Sungai Sibela</h5>
+        <p>1.8 ha change between two observations, 210 m from the nearest river. Outside known permit boundary.</p>
+        <div class="meta">sentinel-2-l2a · acquired 2026-09-09 · quality: medium</div>
+      </div>
+    </div>
+
+    <div class="alert">
+      <span class="mark" style="background:#B98A22;"></span>
+      <div>
+        <h5>Coastal sediment anomaly, north bay</h5>
+        <p>Turbidity proxy elevated relative to 30-day baseline. No downstream mining activity confirmed.</p>
+        <div class="meta">sentinel-2-l2a · acquired 2026-09-06 · quality: low</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
