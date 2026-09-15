@@ -636,6 +636,17 @@ Inspector menjadi context-aware berdasarkan selected AOI.
 - nearest river dapat dihitung;
 - AOI size dibatasi agar tidak menghasilkan request remote yang berlebihan.
 
+## Status
+
+Completed.
+
+- Draw AOI: click vertices, double-click to finish, Escape to cancel; live rubber-band line + vertices (MapView).
+- Button "Draw AOI" di LayerPanel fungsional, toggle jadi "Cancel drawing".
+- Metrics via Turf.js (useAoiAnalysis.ts): area (ha), IUP intersect % + names, nearest river (m), distance to coastline, watershed by point-in-polygon.
+- InspectorPanel context-aware: AOI block dengan Clear AOI, loading, dan error state.
+- AOI limit 10.000 ha (100 km²); overshoot menampilkan pesan "AOI too large", tidak ada request remote.
+- Verified in browser: draw, metrics, clear, Escape, oversize error; node self-check untuk intersect 100%/null; vue-tsc + vite build pass.
+
 # Phase 9 — Automated Change Detection
 
 ## Goal

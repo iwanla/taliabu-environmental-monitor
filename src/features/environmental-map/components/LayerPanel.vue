@@ -5,6 +5,9 @@ import type { LayerCategory } from "@/shared/types/layers";
 
 const { layers, isVisible, getOpacity, toggleLayer, setOpacity, getByCategory } = useLayers();
 
+defineProps<{ drawMode?: boolean }>();
+const emit = defineEmits<{ drawAoi: [] }>();
+
 const categories: { id: LayerCategory; label: string; color: string }[] = [
   { id: "satellite", label: "Satellite", color: "var(--cat-satellite)" },
   { id: "environment", label: "Environment", color: "var(--cat-environment)" },
@@ -72,7 +75,9 @@ function toggleCollapse(id: LayerCategory) {
 
     <div class="aoi-cta">
       <p>Draw an area of interest to get vegetation, water and proximity statistics.</p>
-      <button class="btn btn-secondary" style="width:100%; justify-content:center;">Draw AOI</button>
+      <button class="btn btn-secondary" style="width:100%; justify-content:center;" :class="{ active: drawMode }" @click="emit('drawAoi')">
+        {{ drawMode ? "Cancel drawing" : "Draw AOI" }}
+      </button>
     </div>
   </aside>
 </template>

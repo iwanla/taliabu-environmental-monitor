@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { Map as MaplibreMap, LngLatBounds } from "maplibre-gl";
+import type { GeoJSONSource, MapMouseEvent } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import MapLegend from "./MapLegend.vue";
 import { useLayers } from "../composables/useLayers";
@@ -36,12 +37,19 @@ export interface MapViewCamera {
 const props = defineProps<{
   activeScenes?: SatelliteAcquisition[];
   initialView?: MapViewCamera;
+  drawMode?: boolean;
+  aoi?: GeoJSON.Polygon | null;
 }>();
 
 const emit = defineEmits<{
   featureSelected: [feature: GeoJSON.Feature | null, layerId: string | null];
   viewChanged: [view: MapViewCamera];
+  aoiDrawn: [polygon: GeoJSON.Polygon];
+  aoiCancelled: [];
 }>();
+
+const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+const drawPoints = ref<[number, number][]>([]);
 
 const { layers, isVisible, getOpacity } = useLayers();
 const mapContainer = ref<HTMLDivElement>();
@@ -160,6 +168,93 @@ function updateRasterVisibility(def: MapLayerDefinition) {
   const visible = isVisible(def.id);
   const opacity = getOpacity(def.id);
   map.setPaintProperty(layerId, "raster-opacity", visible ? opacity : 0);
+}
+
+function ensureAoiLayers() {
+  if (!map || map.getSource("aoi-draw")) return;
+
+  map.addSource("aoi-draw", { type: "geojson", data: EMPTY_FC });
+  map.addLayer({
+    id: "aoi-draw-line",
+    type: "line",
+    source: "aoi-draw",
+    filter: ["==", ["geometry-type"], "LineString"],
+    paint: { "line-color": "#C68A22", "line-width": 2, "line-dasharray": [2, 2] },
+  });
+  map.addLayer({
+    id: "aoi-draw-verts",
+    type: "circle",
+    source: "aoi-draw",
+    filter: ["==", ["geometry-type"], "Point"],
+    paint: { "circle-radius": 4, "circle-color": "#C68A22", "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 },
+  });
+
+  map.addSource("aoi-area", { type: "geojson", data: EMPTY_FC });
+  map.addLayer({
+    id: "aoi-area-fill",
+    type: "fill",
+    source: "aoi-area",
+    paint: { "fill-color": "#C68A22", "fill-opacity": 0.14 },
+  });
+  map.addLayer({
+    id: "aoi-area-line",
+    type: "line",
+    source: "aoi-area",
+    paint: { "line-color": "#C68A22", "line-width": 2.5 },
+  });
+}
+
+function updateLiveDraw() {
+  if (!map) return;
+  const source = map.getSource("aoi-draw") as GeoJSONSource | undefined;
+  if (!source) return;
+  const features: GeoJSON.Feature[] = drawPoints.value.map((c) => ({
+    type: "Feature",
+    properties: {},
+    geometry: { type: "Point", coordinates: c },
+  }));
+  if (drawPoints.value.length >= 2) {
+    features.push({
+      type: "Feature",
+      properties: {},
+      geometry: { type: "LineString", coordinates: drawPoints.value },
+    });
+  }
+  source.setData({ type: "FeatureCollection", features });
+}
+
+function handleDrawClick(e: MapMouseEvent) {
+  drawPoints.value.push([e.lngLat.lng, e.lngLat.lat]);
+  updateLiveDraw();
+}
+
+function handleDrawFinish() {
+  if (!props.drawMode) return;
+  const pts = drawPoints.value;
+  const cleaned = pts.filter((p, i) => i === 0 || p[0] !== pts[i - 1][0] || p[1] !== pts[i - 1][1]);
+  if (cleaned.length < 3) return;
+  cleaned.push(cleaned[0]);
+  drawPoints.value = [];
+  updateLiveDraw();
+  emit("aoiDrawn", { type: "Polygon", coordinates: [cleaned] });
+}
+
+function renderAoi() {
+  if (!map) return;
+  const source = map.getSource("aoi-area") as GeoJSONSource | undefined;
+  if (!source) return;
+  source.setData(
+    props.aoi
+      ? { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: props.aoi }] }
+      : EMPTY_FC,
+  );
+}
+
+function onAoiKeydown(e: KeyboardEvent) {
+  if (e.key !== "Escape" || !props.drawMode) return;
+  drawPoints.value = [];
+  updateLiveDraw();
+  emit("aoiCancelled");
 }
 
 async function loadRasterLayer(def: MapLayerDefinition, from: string) {
@@ -357,8 +452,15 @@ onMounted(async () => {
       }
     }
 
+    ensureAoiLayers();
+    renderAoi();
+
   map.on("click", (e) => {
       if (!map) return;
+      if (props.drawMode) {
+        handleDrawClick(e);
+        return;
+      }
       const clickedLayers = layers.value
         .filter((d) => isVisible(d.id))
         .map((d) => `${d.id}-layer`);
@@ -369,6 +471,12 @@ onMounted(async () => {
       } else {
         emit("featureSelected", null, null);
       }
+    });
+
+    map.on("dblclick", (e) => {
+      if (!props.drawMode) return;
+      e.preventDefault();
+      handleDrawFinish();
     });
 
     map.on("move", () => {
@@ -386,6 +494,25 @@ onMounted(async () => {
 });
 
 watch(() => props.activeScenes, (scenes) => updateSatelliteLayers(scenes ?? []), { deep: true });
+
+watch(() => props.drawMode, (mode) => {
+  if (!map) return;
+  map.doubleClickZoom[mode ? "disable" : "enable"]();
+  map.getCanvas().style.cursor = mode ? "crosshair" : "";
+  if (mode) {
+    drawPoints.value = [];
+    updateLiveDraw();
+  }
+});
+
+watch(() => props.aoi, renderAoi);
+
+onMounted(() => document.addEventListener("keydown", onAoiKeydown));
+
+onUnmounted(() => {
+  document.removeEventListener("keydown", onAoiKeydown);
+  map?.remove();
+});
 
 watch(
   () => layers.value.map((l) => ({ id: l.id, type: l.type, visible: isVisible(l.id), opacity: getOpacity(l.id) })),
@@ -410,10 +537,6 @@ watch(
   },
   { deep: true }
 );
-
-onUnmounted(() => {
-  map?.remove();
-});
 </script>
 
 <template>

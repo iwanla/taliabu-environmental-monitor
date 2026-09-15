@@ -1,15 +1,37 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useDatasetMetadata } from "../composables/useDatasetMetadata";
+import { analyzeAoi, type AoiAnalysis } from "../composables/useAoiAnalysis";
 
 const props = defineProps<{
   feature: GeoJSON.Feature | null;
   layerId: string | null;
+  aoi?: GeoJSON.Polygon | null;
+  aoiError?: string | null;
 }>();
+
+const emit = defineEmits<{ clearAoi: [] }>();
 
 const { load, getByLayerId } = useDatasetMetadata();
 
 onMounted(() => load());
+
+const analysis = ref<AoiAnalysis | null>(null);
+const analyzing = ref(false);
+const analysisFailed = ref(false);
+
+watch(() => props.aoi, async (polygon) => {
+  analysis.value = null;
+  analysisFailed.value = false;
+  if (!polygon) return;
+  analyzing.value = true;
+  try {
+    analysis.value = await analyzeAoi(polygon);
+  } catch {
+    analysisFailed.value = true;
+  }
+  analyzing.value = false;
+});
 
 function formatKey(key: string): string {
   return key
@@ -22,6 +44,16 @@ function formatValue(val: unknown): string {
   if (typeof val === "boolean") return val ? "Yes" : "No";
   if (typeof val === "number") return val.toLocaleString();
   return String(val);
+}
+
+function formatM(m?: number): string {
+  if (m == null) return "—";
+  return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
+}
+
+function formatHa(ha?: number): string {
+  if (ha == null) return "—";
+  return ha >= 100 ? `${Math.round(ha).toLocaleString()} ha` : `${ha.toFixed(1)} ha`;
 }
 </script>
 
@@ -66,10 +98,51 @@ function formatValue(val: unknown): string {
       <div class="metric-row"><span>Visible features</span><span class="v">—</span></div>
     </div>
 
-    <div class="insp-block empty-state">
+    <div v-if="aoiError" class="insp-block empty-state">
+      <h5>AOI too large</h5>
+      <div class="sub">Size limit exceeded</div>
+      <p>{{ aoiError }}</p>
+    </div>
+
+    <div v-else-if="aoi" class="insp-block">
+      <h5>Area of Interest</h5>
+      <div class="sub">AOI statistics</div>
+      <template v-if="analyzing">
+        <div class="metric-row"><span>Area</span><span class="v">…</span></div>
+      </template>
+      <template v-else-if="analysisFailed">
+        <div class="metric-row"><span>Error</span><span class="v">Analysis failed</span></div>
+      </template>
+      <template v-else-if="analysis">
+        <div class="metric-row"><span>Area</span><span class="v">{{ formatHa(analysis.areaHa) }}</span></div>
+        <div class="metric-row">
+          <span>Within IUP permit</span>
+          <span class="v">{{ analysis.permits.length ? `${analysis.permitPct.toFixed(1)}%` : "No" }}</span>
+        </div>
+        <div v-if="analysis.permits.length" class="metric-row">
+          <span>Permit</span>
+          <span class="v">{{ analysis.permits.join(", ") }}</span>
+        </div>
+        <div class="metric-row">
+          <span>Nearest river</span>
+          <span class="v">{{ analysis.nearestRiver ? `${analysis.nearestRiver.name} · ${formatM(analysis.nearestRiver.distanceM)}` : "—" }}</span>
+        </div>
+        <div class="metric-row">
+          <span>Distance to coast</span>
+          <span class="v">{{ formatM(analysis.coastDistanceM) }}</span>
+        </div>
+        <div class="metric-row">
+          <span>Watershed</span>
+          <span class="v">{{ analysis.watershed ?? "—" }}</span>
+        </div>
+      </template>
+      <button class="aoi-clear" @click="emit('clearAoi')">Clear AOI</button>
+    </div>
+
+    <div v-else class="insp-block empty-state">
       <h5>No AOI selected</h5>
       <div class="sub">Draw an area on the map to view statistics</div>
-      <p>Click "Draw AOI" in the layers panel, then trace a polygon on the map. Vegetation, water, and proximity data will appear here.</p>
+      <p>Click "Draw AOI" in the layers panel, click on the map to trace a polygon, then double-click to finish. Escape cancels.</p>
     </div>
   </aside>
 </template>
@@ -157,5 +230,24 @@ function formatValue(val: unknown): string {
   margin: 8px 0 0;
   font-size: 12px;
   color: var(--ink-faint);
+}
+
+.aoi-clear {
+  margin-top: 10px;
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--paper-sunk);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.aoi-clear:hover {
+  border-color: #c0392b;
+  color: #c0392b;
 }
 </style>

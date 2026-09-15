@@ -7,6 +7,8 @@ import InspectorPanel from "./components/InspectorPanel.vue";
 import Timeline from "./components/Timeline.vue";
 import MetricsRow from "./components/MetricsRow.vue";
 import CompareView from "./components/CompareView.vue";
+import { area } from "@turf/turf";
+import { AOI_MAX_HA } from "./composables/useAoiAnalysis";
 
 const selectedFeature = ref<GeoJSON.Feature | null>(null);
 const selectedLayerId = ref<string | null>(null);
@@ -17,6 +19,32 @@ const activePreset = ref("latest");
 const compareMode = ref<"swipe" | "split" | null>(null);
 const sceneB = ref<SatelliteAcquisition | null>(null);
 const camera = ref<MapViewCamera | null>(null);
+
+const drawMode = ref(false);
+const aoi = ref<GeoJSON.Polygon | null>(null);
+const aoiError = ref<string | null>(null);
+
+function toggleDrawAoi() {
+  drawMode.value = !drawMode.value;
+  if (drawMode.value) aoiError.value = null;
+}
+
+function handleAoiDrawn(polygon: GeoJSON.Polygon) {
+  drawMode.value = false;
+  const ha = area(polygon) / 10_000;
+  if (ha > AOI_MAX_HA) {
+    aoi.value = null;
+    aoiError.value = `Area ${Math.round(ha).toLocaleString()} ha exceeds the ${AOI_MAX_HA.toLocaleString()} ha (100 km²) analysis limit. Draw a smaller polygon.`;
+    return;
+  }
+  aoi.value = polygon;
+  aoiError.value = null;
+}
+
+function clearAoi() {
+  aoi.value = null;
+  aoiError.value = null;
+}
 
 const activeScene = computed(() => {
   if (!selectedScene.value) return [];
@@ -183,14 +211,18 @@ onMounted(() => {
 <template>
   <div class="app">
     <AppHeader :latest-acquisition="scenes[0] ?? null" />
-    <LayerPanel />
+    <LayerPanel :draw-mode="drawMode" @draw-aoi="toggleDrawAoi" />
     <div class="map-area">
       <MapView
         v-if="!compareMode"
         :active-scenes="activeScene"
         :initial-view="camera ?? undefined"
+        :draw-mode="drawMode"
+        :aoi="aoi"
         @feature-selected="(f, l) => { selectedFeature = f; selectedLayerId = l; }"
         @view-changed="(view) => camera = view"
+        @aoi-drawn="handleAoiDrawn"
+        @aoi-cancelled="drawMode = false"
       />
       <CompareView
         v-else-if="compareMode && selectedScene && sceneB"
@@ -200,7 +232,13 @@ onMounted(() => {
         :initial-view="camera ?? undefined"
       />
     </div>
-    <InspectorPanel :feature="selectedFeature" :layer-id="selectedLayerId" />
+    <InspectorPanel
+      :feature="selectedFeature"
+      :layer-id="selectedLayerId"
+      :aoi="aoi"
+      :aoi-error="aoiError"
+      @clear-aoi="clearAoi"
+    />
     <Timeline
       :scenes="scenes"
       :selected-scene="selectedScene"
