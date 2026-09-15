@@ -8,6 +8,7 @@ export type LayerCategory =
   | "administrative";
 
 export type LayerType = "raster" | "vector";
+export type BasemapMode = "vector" | "satellite" | "minimal";
 
 export interface LayerPaint {
   "fill-color"?: string;

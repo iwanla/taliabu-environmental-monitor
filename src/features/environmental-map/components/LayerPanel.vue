@@ -2,11 +2,12 @@
 import { ref } from "vue";
 import { useLayers } from "../composables/useLayers";
 import type { LayerCategory } from "@/shared/types/layers";
+import type { BasemapMode } from "@/shared/types/layers";
 
 const { layers, isVisible, getOpacity, toggleLayer, setOpacity, getByCategory } = useLayers();
 
-defineProps<{ drawMode?: boolean }>();
-const emit = defineEmits<{ drawAoi: [] }>();
+const props = defineProps<{ drawMode?: boolean; basemapMode: BasemapMode }>();
+const emit = defineEmits<{ drawAoi: []; basemapChanged: [mode: BasemapMode] }>();
 
 const categories: { id: LayerCategory; label: string; color: string }[] = [
   { id: "satellite", label: "Satellite", color: "var(--cat-satellite)" },
@@ -30,9 +31,9 @@ function toggleCollapse(id: LayerCategory) {
   <aside class="layers">
     <div class="panel-title">Basemap</div>
     <div class="basemap-row">
-      <div class="tab active">Vector</div>
-      <div class="tab">Satellite</div>
-      <div class="tab">Minimal</div>
+      <button v-for="mode in ([['vector', 'Vector'], ['satellite', 'Satellite'], ['minimal', 'Minimal']] as [BasemapMode, string][])" :key="mode[0]" class="tab" :class="{ active: props.basemapMode === mode[0] }" type="button" @click="emit('basemapChanged', mode[0])">
+        {{ mode[1] }}
+      </button>
     </div>
 
     <template v-for="cat in categories" :key="cat.id">
@@ -112,9 +113,11 @@ function toggleCollapse(id: LayerCategory) {
   text-align: center;
   font-size: 11.5px;
   padding: 6px 4px;
+  border: 0;
   border-radius: var(--radius-sm);
   background: var(--paper-sunk);
   color: var(--ink-soft);
+  font-family: inherit;
   cursor: pointer;
 }
 

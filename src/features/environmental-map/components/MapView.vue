@@ -5,7 +5,7 @@ import type { GeoJSONSource, MapMouseEvent } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import MapLegend from "./MapLegend.vue";
 import { useLayers } from "../composables/useLayers";
-import type { MapLayerDefinition } from "@/shared/types/layers";
+import type { BasemapMode, MapLayerDefinition } from "@/shared/types/layers";
 
 export interface SatelliteTile {
   id: string;
@@ -36,6 +36,7 @@ export interface MapViewCamera {
 
 const props = defineProps<{
   activeScenes?: SatelliteAcquisition[];
+  basemapMode: BasemapMode;
   initialView?: MapViewCamera;
   drawMode?: boolean;
   aoi?: GeoJSON.Polygon | null;
@@ -55,6 +56,7 @@ const { layers, isVisible, getOpacity } = useLayers();
 const mapContainer = ref<HTMLDivElement>();
 let map: MaplibreMap | null = null;
 const loadedSources = new Set<string>();
+const originalBasemapVisibility = new Map<string, "visible" | "none" | undefined>();
 
 const RASTER_BBOX: [number, number, number, number] = [123.8, -2.5, 125.8, -1.0];
 const RASTER_COORDS: [[number, number], [number, number], [number, number], [number, number]] = [
@@ -408,6 +410,7 @@ async function updateSatelliteLayers(scenes: SatelliteAcquisition[]) {
     }
 
     updateRasterLayers(from);
+    updateBasemap(props.basemapMode);
   } catch {
     // silent fail
   }
@@ -428,6 +431,25 @@ function resetView() {
     new LngLatBounds([124.3371, -2.0332], [125.3269, -1.6300]),
     { padding: 80 },
   );
+}
+
+function updateBasemap(mode: BasemapMode) {
+  if (!map) return;
+  for (const layer of map.getStyle().layers ?? []) {
+    if (layer.id.endsWith("-layer") || layer.id.endsWith("-outline") || layer.id.startsWith("taliabu-")) continue;
+    if (!originalBasemapVisibility.has(layer.id)) {
+      originalBasemapVisibility.set(layer.id, layer.layout?.visibility as "visible" | "none" | undefined);
+    }
+    const visibility = mode === "vector"
+      ? originalBasemapVisibility.get(layer.id)
+      : mode === "minimal" && layer.type !== "symbol"
+        ? originalBasemapVisibility.get(layer.id)
+        : "none";
+    map.setLayoutProperty(layer.id, "visibility", visibility ?? "visible");
+  }
+  if (map.getLayer("sentinel-layer")) {
+    map.setLayoutProperty("sentinel-layer", "visibility", mode === "satellite" ? "visible" : "none");
+  }
 }
 
 onMounted(async () => {
@@ -527,10 +549,12 @@ onMounted(async () => {
     });
 
     if (props.activeScenes?.length) updateSatelliteLayers(props.activeScenes);
+    updateBasemap(props.basemapMode);
   });
 });
 
 watch(() => props.activeScenes, (scenes) => updateSatelliteLayers(scenes ?? []), { deep: true });
+watch(() => props.basemapMode, updateBasemap);
 
 watch(() => props.drawMode, (mode) => {
   if (!map) return;

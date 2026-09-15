@@ -9,12 +9,14 @@ import MetricsRow from "./components/MetricsRow.vue";
 import CompareView from "./components/CompareView.vue";
 import { area } from "@turf/turf";
 import { AOI_MAX_HA } from "./composables/useAoiAnalysis";
+import type { BasemapMode } from "@/shared/types/layers";
 
 const selectedFeature = ref<GeoJSON.Feature | null>(null);
 const selectedLayerId = ref<string | null>(null);
 const scenes = ref<SatelliteAcquisition[]>([]);
 const selectedScene = ref<SatelliteAcquisition | null>(null);
 const activePreset = ref("latest");
+const basemapMode = ref<BasemapMode>("vector");
 
 const compareMode = ref<"swipe" | "split" | null>(null);
 const sceneB = ref<SatelliteAcquisition | null>(null);
@@ -138,6 +140,15 @@ function toggleCompareMode() {
   updateCompareURL();
 }
 
+function handleBasemapChanged(mode: BasemapMode) {
+  basemapMode.value = mode;
+  if (mode !== "satellite" && compareMode.value) {
+    compareMode.value = null;
+    sceneB.value = null;
+    updateCompareURL();
+  }
+}
+
 function handleSceneSelected(scene: SatelliteAcquisition) {
   if (compareMode.value && sceneB.value) {
     if (scene.id === selectedScene.value?.id) return;
@@ -211,11 +222,12 @@ onMounted(() => {
 <template>
   <div class="app">
     <AppHeader :latest-acquisition="scenes[0] ?? null" />
-    <LayerPanel :draw-mode="drawMode" @draw-aoi="toggleDrawAoi" />
+    <LayerPanel :draw-mode="drawMode" :basemap-mode="basemapMode" @draw-aoi="toggleDrawAoi" @basemap-changed="handleBasemapChanged" />
     <div class="map-area">
       <MapView
         v-if="!compareMode"
         :active-scenes="activeScene"
+        :basemap-mode="basemapMode"
         :initial-view="camera ?? undefined"
         :draw-mode="drawMode"
         :aoi="aoi"
@@ -240,6 +252,7 @@ onMounted(() => {
       @clear-aoi="clearAoi"
     />
     <Timeline
+       v-if="basemapMode === 'satellite'"
       :scenes="scenes"
       :selected-scene="selectedScene"
       :active-preset="activePreset"
