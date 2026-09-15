@@ -26,50 +26,62 @@
   {
     "id": "rivers",
     "category": "reference",
-    "source": "hydrology reference",
-    "sourceUrl": null,
-    "retrievedAt": "2026-09-11",
+    "source": "BIG Rupabumi Indonesia",
+    "sourceUrl": "https://geoservices.big.go.id/rbi/rest/services/BASEMAP/Rupabumi_Indonesia/MapServer/673",
+    "retrievedAt": "2026-09-15",
     "sourceUpdatedAt": null,
     "version": "2026-09",
     "refreshPolicy": "manual",
     "license": null,
-    "notes": "Major river network"
+    "notes": "Sungai (Garis), layer 673, filtered to features intersecting Pulau Taliabu"
   },
   {
     "id": "watersheds",
     "category": "reference",
-    "source": "hydrology reference",
-    "sourceUrl": null,
-    "retrievedAt": "2026-09-11",
+    "source": "BIG Atlas Wilayah Sungai",
+    "sourceUrl": "https://geoservices.big.go.id/gis/rest/services/PTRA/Atlas_Wilayah_Sungai/MapServer/5",
+    "retrievedAt": "2026-09-15",
     "sourceUpdatedAt": null,
     "version": "2026-09",
     "refreshPolicy": "manual",
     "license": null,
-    "notes": "Watershed boundaries"
+    "notes": "SUMBERDAYAAIR_DAERAHALIRANSUNGAI, filtered to features intersecting Pulau Taliabu"
   },
   {
     "id": "settlements",
-    "category": "periodic",
-    "source": "population reference",
-    "sourceUrl": null,
-    "retrievedAt": "2026-09-11",
+    "category": "reference",
+    "source": "BIG Rupabumi Indonesia",
+    "sourceUrl": "https://geoservices.big.go.id/rbi/rest/services/BASEMAP/Rupabumi_Indonesia/MapServer/97",
+    "retrievedAt": "2026-09-15",
     "sourceUpdatedAt": null,
     "version": "2026-09",
-    "refreshPolicy": "quarterly",
+    "refreshPolicy": "manual",
     "license": null,
-    "notes": "Settlement locations"
+    "notes": "Permukiman (titik), BIG layer queried for Pulau Taliabu; no intersecting features returned"
+  },
+  {
+    "id": "settlement-areas",
+    "category": "reference",
+    "source": "BIG Rupabumi Indonesia",
+    "sourceUrl": "https://geoservices.big.go.id/rbi/rest/services/BASEMAP/Rupabumi_Indonesia/MapServer/808",
+    "retrievedAt": "2026-09-15",
+    "sourceUpdatedAt": null,
+    "version": "2026-09",
+    "refreshPolicy": "manual",
+    "license": null,
+    "notes": "Permukiman (area), filtered to features intersecting Pulau Taliabu"
   },
   {
     "id": "mining-iup",
     "category": "periodic",
-    "source": "ESDM/MOMI",
-    "sourceUrl": null,
-    "retrievedAt": "2026-09-11",
+    "source": "BIG - Kebijakan Satu Peta",
+    "sourceUrl": "https://kspservices.big.go.id/satupeta/rest/services/PUBLIK/PERIZINAN_DAN_PERTANAHAN/MapServer/4",
+    "retrievedAt": "2026-09-15",
     "sourceUpdatedAt": null,
     "version": "2026-09-11",
     "refreshPolicy": "monthly",
     "license": null,
-    "notes": "IUP/WIUP boundary snapshot"
+    "notes": "Peta Wilayah Izin Usaha Pertambangan, original polygons intersecting Pulau Taliabu"
   },
   {
     "id": "baseline-coastline",

@@ -65,16 +65,39 @@ const RASTER_COORDS: [[number, number], [number, number], [number, number], [num
 ];
 
 const activeRasterLayers = new Map<string, { url: string }>();
+const legendGroups = ref<{ id: string; title: string; items: { label: string; color: string }[] }[]>([]);
 
 async function loadGeoJSON(sourceId: string, url: string) {
-  if (!map || loadedSources.has(sourceId)) return;
+  if (!map || loadedSources.has(sourceId)) return null;
   const res = await fetch(url);
   const data = await res.json();
   map.addSource(sourceId, { type: "geojson", data });
   loadedSources.add(sourceId);
+  return data;
 }
 
-function addLayerToMap(def: MapLayerDefinition) {
+function categoryColors(data: GeoJSON.FeatureCollection) {
+  const values = [...new Set(data.features.map((feature) => String(feature.properties?.name ?? "")).filter(Boolean))].sort();
+  return values.map((value, index) => {
+    const hue = Math.round((index * 360) / Math.max(values.length, 1));
+    const c = (1 - Math.abs((2 * 43 / 100) - 1)) * 55 / 100;
+    const x = c * (1 - Math.abs((hue / 60) % 2 - 1));
+    const m = 43 / 100 - c / 2;
+    const [r, g, b] = hue < 60 ? [c, x, 0] : hue < 120 ? [x, c, 0] : hue < 180 ? [0, c, x]
+      : hue < 240 ? [0, x, c] : hue < 300 ? [x, 0, c] : [c, 0, x];
+    const hex = [r, g, b].map((channel) => Math.round((channel + m) * 255).toString(16).padStart(2, "0")).join("");
+    return { label: value, color: `#${hex}` };
+  });
+}
+
+function categoryColorExpression(data: GeoJSON.FeatureCollection) {
+  const expression: any[] = ["match", ["get", "name"]];
+  categoryColors(data).forEach(({ label, color }) => expression.push(label, color));
+  expression.push("#6F8178");
+  return expression;
+}
+
+function addLayerToMap(def: MapLayerDefinition, data: GeoJSON.FeatureCollection) {
   if (!map || def.type !== "vector") return;
 
   const sourceId = def.id;
@@ -93,6 +116,11 @@ function addLayerToMap(def: MapLayerDefinition) {
     } else {
       fillPaint[k] = v;
     }
+  }
+
+  if (def.id === "mining-iup" || def.id === "watersheds") {
+    fillPaint["fill-color"] = categoryColorExpression(data);
+    linePaint["line-color"] = categoryColorExpression(data);
   }
 
   map.addLayer({ id: layerId, type, source: sourceId, paint: fillPaint } as any);
@@ -447,8 +475,17 @@ onMounted(async () => {
 
     for (const def of layers.value) {
       if (def.type === "vector") {
-        await loadGeoJSON(def.id, def.source.url);
-        addLayerToMap(def);
+        const data = await loadGeoJSON(def.id, def.source.url);
+        if (data) {
+          addLayerToMap(def, data);
+          if (def.id === "mining-iup" || def.id === "watersheds") {
+            legendGroups.value.push({
+              id: def.id,
+              title: def.id === "mining-iup" ? "Mining IUP" : "Watershed",
+              items: categoryColors(data),
+            });
+          }
+        }
       }
     }
 
@@ -556,7 +593,7 @@ watch(
     </div>
 
     <div class="map-bottom">
-      <MapLegend />
+      <MapLegend :groups="legendGroups" />
       <div class="scale">
         <div class="bar"></div>
         <span>2 km</span>

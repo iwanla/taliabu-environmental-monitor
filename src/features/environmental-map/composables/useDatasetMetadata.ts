@@ -32,6 +32,7 @@ export function useDatasetMetadata() {
       "watersheds-layer": "watersheds",
       "coastline-layer": "baseline-coastline",
       "settlements-layer": "settlements",
+      "settlement-areas-layer": "settlement-areas",
       "admin-boundary-layer": "administrative-boundaries",
     };
     const datasetId = mapping[layerId];

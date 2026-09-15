@@ -81,6 +81,22 @@ export const staticLayers: MapLayerDefinition[] = [
     },
   },
   {
+    id: "settlement-areas",
+    name: "Settlement areas",
+    category: "terrain",
+    type: "vector",
+    defaultVisible: false,
+    opacity: 0.35,
+    source: { type: "geojson", url: "/data/human/settlement-areas.geojson" },
+    layerType: "fill",
+    paint: {
+      "fill-color": "#C98B55",
+      "fill-opacity": 0.18,
+      "line-color": "#C98B55",
+      "line-width": 1,
+    },
+  },
+  {
     id: "admin-boundary",
     name: "Administrative boundary",
     sub: "Kab. Pulau Taliabu",
