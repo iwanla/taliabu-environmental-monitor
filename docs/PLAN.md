@@ -961,7 +961,81 @@ Scene discovery dan analysis dapat reuse cached metadata.
 - schema migrations tersedia;
 - storage tetap metadata-focused.
 
-# Phase 15 — Scheduled Scene Discovery
+# Phase 15 — Environmental Alerts
+
+## Goal
+
+Menghasilkan monitoring event berdasarkan perubahan yang telah dihitung.
+
+## Initial Rules
+
+Examples:
+
+```text
+vegetation_loss_area >= threshold
+
+surface_change
+AND distance_to_river <= threshold
+
+surface_change
+AND distance_to_coast <= threshold
+
+surface_change
+AND NOT intersects_known_iup
+```
+
+## Deliverables
+
+Alert panel pada one-page dashboard.
+
+## Acceptance Criteria
+
+- setiap alert dapat dibuka di peta;
+- setiap alert memiliki evidence metadata;
+- threshold configurable;
+- alert dapat di-filter secara UI.
+
+# Phase 16 — Export and Evidence
+
+## Goal
+
+Membuat hasil monitoring dapat didokumentasikan dan dibagikan.
+
+## Export Types
+
+```text
+PNG
+CSV
+GeoJSON
+JSON metadata
+Shareable URL
+```
+
+## Snapshot Metadata
+
+Snapshot minimal berisi:
+
+```text
+Observation date
+Comparison date
+Source
+Active layers
+AOI
+Generated timestamp
+```
+
+## Deliverables
+
+Export action tersedia dari dashboard.
+
+## Acceptance Criteria
+
+- screenshot memiliki attribution;
+- CSV memiliki units;
+- GeoJSON memiliki context yang jelas;
+- evidence metadata menyimpan source dan method.
+
+# Phase 17 — Scheduled Scene Discovery
 
 ## Goal
 
@@ -1008,80 +1082,6 @@ Latest usable scene dapat diperbarui otomatis.
 - quota Copernicus dilindungi;
 - workflow failure dapat diretry;
 - application tetap berjalan jika workflow gagal.
-
-# Phase 16 — Environmental Alerts
-
-## Goal
-
-Menghasilkan monitoring event berdasarkan perubahan yang telah dihitung.
-
-## Initial Rules
-
-Examples:
-
-```text
-vegetation_loss_area >= threshold
-
-surface_change
-AND distance_to_river <= threshold
-
-surface_change
-AND distance_to_coast <= threshold
-
-surface_change
-AND NOT intersects_known_iup
-```
-
-## Deliverables
-
-Alert panel pada one-page dashboard.
-
-## Acceptance Criteria
-
-- setiap alert dapat dibuka di peta;
-- setiap alert memiliki evidence metadata;
-- threshold configurable;
-- alert dapat di-filter secara UI.
-
-# Phase 17 — Export and Evidence
-
-## Goal
-
-Membuat hasil monitoring dapat didokumentasikan dan dibagikan.
-
-## Export Types
-
-```text
-PNG
-CSV
-GeoJSON
-JSON metadata
-Shareable URL
-```
-
-## Snapshot Metadata
-
-Snapshot minimal berisi:
-
-```text
-Observation date
-Comparison date
-Source
-Active layers
-AOI
-Generated timestamp
-```
-
-## Deliverables
-
-Export action tersedia dari dashboard.
-
-## Acceptance Criteria
-
-- screenshot memiliki attribution;
-- CSV memiliki units;
-- GeoJSON memiliki context yang jelas;
-- evidence metadata menyimpan source dan method.
 
 # Phase 18 — Performance and Free-Tier Hardening
 
