@@ -4,7 +4,7 @@ import { useLayers } from "../composables/useLayers";
 import type { LayerCategory } from "@/shared/types/layers";
 import type { BasemapMode } from "@/shared/types/layers";
 
-const { layers, isVisible, getOpacity, toggleLayer, setOpacity, getByCategory, hasCloudMask, toggleCloudMask } = useLayers();
+const { layers, isVisible, getOpacity, toggleLayer, setOpacity, getByCategory } = useLayers();
 
 const props = defineProps<{ drawMode?: boolean; basemapMode: BasemapMode; miningImpact?: boolean }>();
 const emit = defineEmits<{ drawAoi: []; basemapChanged: [mode: BasemapMode]; toggleMiningImpact: [] }>();
@@ -62,14 +62,6 @@ function toggleCollapse(id: LayerCategory) {
             {{ layer.name }}
             <span v-if="layer.sub" class="sub">{{ layer.sub }}</span>
           </span>
-          <label v-if="layer.type === 'raster' && layer.source.maskable" class="cm" title="Hide cloud/shadow pixels using SCL quality mask">
-            <input
-              type="checkbox"
-              :checked="hasCloudMask(layer.id)"
-              @change="toggleCloudMask(layer.id)"
-            >
-            mask
-          </label>
           <span class="opacity-val">{{ Math.round(getOpacity(layer.id) * 100) }}%</span>
           <input
             class="opacity"
@@ -218,22 +210,6 @@ function toggleCollapse(id: LayerCategory) {
   color: var(--ink-faint);
   font-family: var(--font-mono);
   margin-top: 1px;
-}
-
-.layer-row .cm {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10px;
-  font-family: var(--font-mono);
-  color: var(--ink-faint);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.layer-row .cm input {
-  accent-color: var(--ink-soft);
-  margin: 0;
 }
 
 .layer-row .opacity {

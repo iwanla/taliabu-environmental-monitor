@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { Map as MaplibreMap, LngLatBounds, addProtocol } from "maplibre-gl";
 import type { GeoJSONSource, MapMouseEvent, RasterTileSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -53,13 +53,17 @@ const emit = defineEmits<{
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 const drawPoints = ref<[number, number][]>([]);
 
-const { layers, isVisible, getOpacity, hasCloudMask } = useLayers();
+const { layers, isVisible, getOpacity, cloudMaskOn, toggleCloudMask } = useLayers();
 const mapContainer = ref<HTMLDivElement>();
 let map: MaplibreMap | null = null;
 const loadedSources = new Set<string>();
 const originalBasemapVisibility = new Map<string, "visible" | "none" | undefined>();
 
 const legendGroups = ref<{ id: string; title: string; items: { label: string; color: string }[] }[]>([]);
+
+const showCloudMaskToggle = computed(() =>
+  layers.value.some((l) => l.type === "raster" && l.source.maskable && isVisible(l.id)),
+);
 
 // ponytail: poll-based movement gate — tile fetches wait until the map stops moving (250ms),
 // upgrade to movestart timestamps if precision ever matters
@@ -295,7 +299,7 @@ function rasterTileUrls(def: MapLayerDefinition, from: string) {
     ? new Date(new Date(from).getTime() + 30 * 86400000).toISOString().slice(0, 10)
     : from;
   const q = new URLSearchParams({ type: source.evalscriptKey, from, to, maxCloud: "20" });
-  if (hasCloudMask(def.id)) q.set("mask", "1");
+  if (source.maskable && cloudMaskOn.value) q.set("mask", "1");
   return [`copernicus://render/tile/{z}/{x}/{y}?${q}`];
 }
 
@@ -540,14 +544,15 @@ onUnmounted(() => {
 });
 
 watch(
-  () => layers.value.map((l) => ({ id: l.id, type: l.type, visible: isVisible(l.id), opacity: getOpacity(l.id), mask: hasCloudMask(l.id) })),
+  () => layers.value.map((l) => ({ id: l.id, type: l.type, visible: isVisible(l.id), opacity: getOpacity(l.id), mask: cloudMaskOn.value })),
   (curr, prev) => {
     layers.value.forEach((def) => {
       if (def.type === "raster") {
         const wasVisible = prev?.find((p) => p.id === def.id)?.visible ?? false;
         const wasMasked = prev?.find((p) => p.id === def.id)?.mask ?? false;
         const isVisibleNow = isVisible(def.id);
-        const maskChanged = wasMasked !== hasCloudMask(def.id);
+        const maskable = def.source.maskable === true;
+        const maskChanged = wasMasked !== cloudMaskOn.value && maskable;
         const scene = props.activeScenes?.[0];
 
         if (isVisibleNow && scene && (!wasVisible || maskChanged)) {
@@ -573,6 +578,10 @@ watch(
     <div class="map-topleft">
       <span class="chip">optical · L2A</span>
       <span class="chip sar">SAR available</span>
+      <label v-if="showCloudMaskToggle" class="chip mask-chip" title="Hide cloud, shadow and cirrus pixels using the SCL quality mask">
+        <input type="checkbox" :checked="cloudMaskOn" @change="toggleCloudMask">
+        cloud mask
+      </label>
     </div>
 
     <div class="map-controls">
@@ -628,6 +637,19 @@ watch(
 .chip.sar {
   background: rgba(91, 94, 143, .92);
   color: #fff;
+}
+
+.mask-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mask-chip input {
+  accent-color: var(--ink-soft);
+  margin: 0;
 }
 
 .map-controls {
