@@ -212,6 +212,42 @@ export const staticLayers: MapLayerDefinition[] = [
     legend: [{ label: "Bare soil / built-up", color: "#B38033" }],
   },
   {
+    id: "elevation",
+    name: "Elevation",
+    sub: "DEMNAS · 0.27 arc-s",
+    description: "Digital elevation model from BIG DEMNAS (IFSAR/TerraSAR-X/ALOS PALSAR), 66 m per pixel over the analysis window, vertical datum EGM2008. Ocean and no-data pixels are transparent.",
+    category: "terrain",
+    type: "raster",
+    defaultVisible: false,
+    opacity: 0.85,
+    source: {
+      type: "raster",
+      staticUrl: "/data/terrain/elevation.png",
+      bbox: [124.2, -2.35, 125.4, -1.15],
+    },
+    legend: [
+      { label: "0 → 1400 m", color: "linear-gradient(90deg,#3E6B4F,#7FA05A,#C9B26A,#9A7B55,#EFEFEF)" },
+    ],
+  },
+  {
+    id: "slope",
+    name: "Slope",
+    sub: "derived · Horn 3×3",
+    description: "Terrain slope in degrees, derived from DEMNAS elevation with a Horn 3×3 operator. Steep slopes indicate higher runoff energy and erosion risk below disturbed areas.",
+    category: "terrain",
+    type: "raster",
+    defaultVisible: false,
+    opacity: 0.85,
+    source: {
+      type: "raster",
+      staticUrl: "/data/terrain/slope.png",
+      bbox: [124.2, -2.35, 125.4, -1.15],
+    },
+    legend: [
+      { label: "0° → 60°+", color: "linear-gradient(90deg,#2F5D3A,#7FA05A,#D8C25A,#B4652A,#8A2E1F)" },
+    ],
+  },
+  {
     id: "sar",
     name: "SAR (Sentinel-1)",
     sub: "VV, VH · cloud-penetrating",

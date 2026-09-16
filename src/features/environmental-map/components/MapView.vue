@@ -195,6 +195,24 @@ function addRasterLayer(def: MapLayerDefinition, from: string) {
   );
 }
 
+function addStaticRasterLayer(def: MapLayerDefinition) {
+  if (!map || def.type !== "raster" || !def.source.staticUrl) return;
+  const sourceId = `${def.id}-raster-src`;
+  const layerId = `${def.id}-layer`;
+  if (map.getSource(sourceId)) return;
+  const [w, s, e, n] = def.source.bbox ?? [124.2, -2.3, 125.4, -1.2];
+  map.addSource(sourceId, {
+    type: "image",
+    url: def.source.staticUrl,
+    coordinates: [[w, n], [e, n], [e, s], [w, s]],
+  });
+  const beforeLayer = map.getLayer("taliabu-boundary-fill") ? "taliabu-boundary-fill" : undefined;
+  map.addLayer(
+    { id: layerId, type: "raster", source: sourceId, paint: { "raster-opacity": getOpacity(def.id) } },
+    beforeLayer,
+  );
+}
+
 function updateRasterVisibility(def: MapLayerDefinition) {
   if (!map || def.type !== "raster") return;
   const layerId = `${def.id}-layer`;
@@ -294,7 +312,7 @@ function onAoiKeydown(e: KeyboardEvent) {
 
 function rasterTileUrls(def: MapLayerDefinition, from: string) {
   const source = def.source;
-  if (source.type !== "raster") return [];
+  if (source.type !== "raster" || !source.evalscriptKey) return [];
   const to = source.evalscriptKey.startsWith("sar")
     ? new Date(new Date(from).getTime() + 30 * 86400000).toISOString().slice(0, 10)
     : from;
@@ -305,6 +323,10 @@ function rasterTileUrls(def: MapLayerDefinition, from: string) {
 
 function loadRasterLayer(def: MapLayerDefinition, from: string) {
   if (!map || def.type !== "raster") return;
+  if (def.source.staticUrl) {
+    addStaticRasterLayer(def);
+    return;
+  }
   const source = map.getSource(`${def.id}-raster-src`) as RasterTileSource | undefined;
   if (source) {
     source.setTiles(rasterTileUrls(def, from));
@@ -555,8 +577,8 @@ watch(
         const maskChanged = wasMasked !== cloudMaskOn.value && maskable;
         const scene = props.activeScenes?.[0];
 
-        if (isVisibleNow && scene && (!wasVisible || maskChanged)) {
-          loadRasterLayer(def, scene.acquiredAt.slice(0, 10));
+        if (isVisibleNow && (def.source.staticUrl || scene) && (!wasVisible || maskChanged)) {
+          loadRasterLayer(def, scene?.acquiredAt.slice(0, 10) ?? "");
         } else if (!isVisibleNow && wasVisible) {
           unloadRasterLayer(def);
         } else if (isVisibleNow) {

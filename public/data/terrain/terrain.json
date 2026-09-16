@@ -1,0 +1,27 @@
+{
+  "source": "DEMNAS via BIG ImageServer (geoservices.big.go.id)",
+  "retrievedAt": "2026-09-16",
+  "bbox": [
+    124.2,
+    -2.3,
+    125.4,
+    -1.2
+  ],
+  "width": 2000,
+  "height": 2000,
+  "elevation": {
+    "range": [
+      0.0,
+      1400.0
+    ],
+    "nodata": "alpha=0"
+  },
+  "slope": {
+    "range": [
+      0.0,
+      60.0
+    ],
+    "unit": "degrees",
+    "method": "Horn 3x3"
+  }
+}

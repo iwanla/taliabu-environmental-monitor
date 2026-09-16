@@ -94,5 +94,17 @@
     "refreshPolicy": "manual",
     "license": null,
     "notes": "Coastline extracted from BIG 1:25000 boundary data"
+  },
+  {
+    "id": "terrain-dem",
+    "category": "terrain",
+    "source": "DEMNAS - BIG via ImageServer",
+    "sourceUrl": "https://geoservices.big.go.id/raster/rest/services/DEMNAS/DEM_Indonesia/ImageServer/exportImage",
+    "retrievedAt": "2026-09-16",
+    "sourceUpdatedAt": null,
+    "version": "1.0.0",
+    "refreshPolicy": "manual",
+    "license": null,
+    "notes": "Preprocessed by scripts/terrain/preprocess.py -> public/data/terrain/{elevation,slope}.png; derived products, datum EGM2008"
   }
 ]

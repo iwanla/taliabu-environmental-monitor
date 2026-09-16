@@ -57,8 +57,10 @@ export interface RasterLayerDefinition {
   opacity: number;
   source: {
     type: "raster";
-    evalscriptKey: string;
+    evalscriptKey?: string;
     maskable?: boolean;
+    staticUrl?: string;
+    bbox?: [number, number, number, number];
   };
   legend?: LegendItem[];
 }
