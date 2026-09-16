@@ -122,6 +122,20 @@ export const staticLayers: MapLayerDefinition[] = [
     defaultVisible: false,
     opacity: 0.85,
     source: { type: "raster", evalscriptKey: "scl" },
+    legend: [
+      { label: "No data", color: "#000000" },
+      { label: "Saturated", color: "#FF0000" },
+      { label: "Dark area", color: "#2F2F2F" },
+      { label: "Cloud shadow", color: "#643200" },
+      { label: "Vegetation", color: "#00A000" },
+      { label: "Bare soil", color: "#FFE65A" },
+      { label: "Water", color: "#0000FF" },
+      { label: "Unclassified", color: "#808080" },
+      { label: "Cloud medium", color: "#C0C0C0" },
+      { label: "Cloud high", color: "#FFFFFF" },
+      { label: "Cirrus", color: "#64C8FF" },
+      { label: "Snow/ice", color: "#FF96FF" },
+    ],
   },
   {
     id: "ndvi",
@@ -132,6 +146,9 @@ export const staticLayers: MapLayerDefinition[] = [
     defaultVisible: false,
     opacity: 0.85,
     source: { type: "raster", evalscriptKey: "ndvi", maskable: true },
+    legend: [
+      { label: "low → high", color: "linear-gradient(90deg,#DBDBDB,#FAFACC,#80B347,#004500)" },
+    ],
   },
   {
     id: "ndwi",
@@ -142,6 +159,9 @@ export const staticLayers: MapLayerDefinition[] = [
     defaultVisible: false,
     opacity: 0.85,
     source: { type: "raster", evalscriptKey: "ndwi", maskable: true },
+    legend: [
+      { label: "dry → water", color: "linear-gradient(90deg,#008000,#FFFFFF,#0000CC)" },
+    ],
   },
   {
     id: "mndwi",
@@ -152,6 +172,9 @@ export const staticLayers: MapLayerDefinition[] = [
     defaultVisible: false,
     opacity: 0.85,
     source: { type: "raster", evalscriptKey: "mndwi", maskable: true },
+    legend: [
+      { label: "land → water", color: "linear-gradient(90deg,#B38033,#D9D1BF,#8CBFD1,#0D4DA6,#001A73)" },
+    ],
   },
   {
     id: "false-color",
@@ -162,6 +185,7 @@ export const staticLayers: MapLayerDefinition[] = [
     defaultVisible: false,
     opacity: 0.85,
     source: { type: "raster", evalscriptKey: "false-color", maskable: true },
+    legend: [{ label: "Vegetation → red", color: "#C8372D" }],
   },
   {
     id: "bare-soil",
@@ -172,6 +196,7 @@ export const staticLayers: MapLayerDefinition[] = [
     defaultVisible: false,
     opacity: 0.85,
     source: { type: "raster", evalscriptKey: "bare-soil" },
+    legend: [{ label: "Bare soil / built-up", color: "#B38033" }],
   },
   {
     id: "sar",

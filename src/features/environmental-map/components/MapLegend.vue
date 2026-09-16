@@ -1,36 +1,66 @@
 <script setup lang="ts">
-import { reactive } from "vue";
+import { computed, reactive } from "vue";
 import { useLayers } from "../composables/useLayers";
+import { staticLayers } from "../layers/static-layers";
+import type { LayerCategory, MapLayerDefinition } from "@/shared/types/layers";
 
-defineProps<{
+const props = defineProps<{
   groups?: { id: string; title: string; items: { label: string; color: string }[] }[];
 }>();
 
 const { isVisible } = useLayers();
 const collapsed = reactive<Record<string, boolean>>({});
+
+const CATEGORY_LABELS: Record<LayerCategory, string> = {
+  satellite: "Satellite",
+  environment: "Environment",
+  mining: "Mining",
+  hydrology: "Hydrology",
+  coastal: "Coastal",
+  terrain: "Terrain",
+  administrative: "Administrative",
+};
+
+// mining-iup & watersheds get dynamic category colors via the `groups` prop
+function hasDynamicLegend(def: MapLayerDefinition) {
+  return def.id === "mining-iup" || def.id === "watersheds";
+}
+
+function mainColor(def: Extract<MapLayerDefinition, { type: "vector" }>): string {
+  const p = def.paint as Record<string, string>;
+  return def.layerType === "point"
+    ? p["circle-stroke-color"] ?? p["circle-color"] ?? "#888"
+    : p["fill-color"] ?? p["line-color"] ?? "#888";
+}
+
+const staticGroups = computed(() => {
+  const out: { id: string; title: string; items: { label: string; color: string }[] }[] = [];
+  for (const def of staticLayers) {
+    if (!isVisible(def.id) || hasDynamicLegend(def)) continue;
+    const items = def.legend ?? [{ label: def.name, color: mainColor(def as any) }];
+    const group = out.find((g) => g.id === def.category);
+    if (group) group.items.push(...items);
+    else out.push({ id: def.category, title: CATEGORY_LABELS[def.category], items });
+  }
+  return out;
+});
+
+const allGroups = computed(() => [...staticGroups.value, ...(props.groups ?? [])]);
 </script>
 
 <template>
   <div class="legend-float">
     <div class="legend-title">Legend</div>
-    <template v-for="group in groups" :key="group.id">
-      <template v-if="isVisible(group.id)">
-        <button class="group-title" type="button" :aria-expanded="!collapsed[group.id]" @click="collapsed[group.id] = !collapsed[group.id]">
-          <span>{{ collapsed[group.id] ? "▸" : "▾" }}</span>{{ group.title }}
-        </button>
-        <div v-if="!collapsed[group.id]" class="group-items">
-          <div v-for="item in group.items" :key="item.label" class="row">
-            <span class="sw" :style="{ background: item.color }"></span>{{ item.label }}
-          </div>
+    <template v-for="group in allGroups" :key="group.id">
+      <button class="group-title" type="button" :aria-expanded="!collapsed[group.id]" @click="collapsed[group.id] = !collapsed[group.id]">
+        <span>{{ collapsed[group.id] ? "▸" : "▾" }}</span>{{ group.title }}
+      </button>
+      <div v-if="!collapsed[group.id]" class="group-items">
+        <div v-for="item in group.items" :key="item.label" class="row">
+          <span class="sw" :style="{ background: item.color }"></span>{{ item.label }}
         </div>
-      </template>
+      </div>
     </template>
-    <div class="group-title static-title">Hydrology</div>
-    <div class="row"><span class="sw" style="background:#3FA0AA"></span>River network</div>
-    <div class="group-title static-title">Vegetation</div>
-    <div class="row"><span class="sw" style="background:#46743A"></span>Vegetation (NDVI)</div>
-    <div class="group-title static-title">Analysis</div>
-    <div class="row"><span class="sw" style="background:#C1432B"></span>Surface disturbance</div>
   </div>
 </template>
 
@@ -67,10 +97,6 @@ const collapsed = reactive<Record<string, boolean>>({});
 .legend-title {
   color: var(--ink);
   font-weight: 700;
-}
-
-.static-title {
-  cursor: default;
 }
 
 .group-items {

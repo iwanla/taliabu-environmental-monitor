@@ -26,6 +26,11 @@ export type MapLayerDefinition =
   | VectorLayerDefinition
   | RasterLayerDefinition;
 
+export interface LegendItem {
+  label: string;
+  color: string;
+}
+
 export interface VectorLayerDefinition {
   id: string;
   name: string;
@@ -37,6 +42,7 @@ export interface VectorLayerDefinition {
   source: { type: "geojson"; url: string };
   layerType: "fill" | "line" | "point";
   paint: LayerPaint;
+  legend?: LegendItem[];
 }
 
 export interface RasterLayerDefinition {
@@ -52,4 +58,5 @@ export interface RasterLayerDefinition {
     evalscriptKey: string;
     maskable?: boolean;
   };
+  legend?: LegendItem[];
 }
