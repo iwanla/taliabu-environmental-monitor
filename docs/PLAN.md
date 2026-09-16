@@ -696,7 +696,8 @@ Map dapat menampilkan derived change polygons/statistics.
 **Completed** — 2026-09-16
 
 - 3 change types: vegetation loss (NDVI drop >= 0.15), new bare land (NDVI crosses below 0.2), water change (MNDWI crosses 0.1 both directions)
-- `ndvi-raw` / `mndwi-raw` evalscripts encode metric into R channel (value+1)/2, alpha = dataMask
+- SAR extension: `sar-loss` (VH backscatter drop >= 2.5 dB, Sentinel-1 GRD, cloud-penetrating untuk Maluku Utara); `sar-raw` evalscript encodes VV->R, VH->G over [-30, 0] dB; 14-day lookback untuk revisit 12 hari
+- `ndvi-raw` / `mndwi-raw` / `sar-raw` evalscripts encode metric into raw channels, alpha = dataMask
 - Client-side per-pixel diff via OffscreenCanvas (`changeDetection.ts`), 2x `/api/render` per analysis (AOI bbox, 512px, 4-day lookback window per date)
 - Result: colored change overlay (maplibre image source) + stats in InspectorPanel
 - Acceptance criteria met: source (Sentinel-2 L2A), method (threshold label), window (date A → B), confidence (% cloud-free valid pixels), proxy disclaimer

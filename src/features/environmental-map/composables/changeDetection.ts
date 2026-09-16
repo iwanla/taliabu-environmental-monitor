@@ -1,6 +1,6 @@
 import { bbox } from "@turf/turf";
 
-export type ChangeType = "vegetation-loss" | "new-bare-land" | "water-change";
+export type ChangeType = "vegetation-loss" | "new-bare-land" | "water-change" | "sar-loss";
 
 export interface ChangeResult {
   type: ChangeType;
@@ -13,10 +13,13 @@ export interface ChangeResult {
 }
 
 interface Rule {
-  metric: "ndvi-raw" | "mndwi-raw";
+  metric: "ndvi-raw" | "mndwi-raw" | "sar-raw";
   label: string;
   test: (a: number, b: number) => number; // 0 = no change, 1/2 = change class
   colors: [number, number, number][];
+  channel?: "r" | "g"; // encoded metric channel (default r)
+  range?: [number, number]; // encoded value range (default [-1, 1])
+  lookbackDays?: number; // per-date acquisition window (default 10)
 }
 
 const WATER = 0.1;
@@ -40,9 +43,18 @@ export const CHANGE_RULES: Record<ChangeType, Rule> = {
     test: (a, b) => (a < WATER && b >= WATER ? 1 : a >= WATER && b < WATER ? 2 : 0),
     colors: [[31, 93, 154], [230, 126, 34]],
   },
+  "sar-loss": {
+    metric: "sar-raw",
+    label: "SAR VH backscatter drop >= 2.5 dB",
+    test: (a, b) => (b - a <= -2.5 ? 1 : 0),
+    colors: [[146, 43, 33]],
+    channel: "g", // VH
+    range: [-30, 0], // dB
+    lookbackDays: 13, // Sentinel-1 revisit is 12 days; guarantee >=1 pass per window
+  },
 };
 
-const decode = (v: number) => (v / 255) * 2 - 1;
+const decode = (v: number, [min, max]: [number, number]) => (v / 255) * (max - min) + min;
 
 // Pure diff over raw-metric RGBA buffers (alpha = dataMask). Returns changed-pixel count and a painted RGBA buffer.
 export function diffPixels(
@@ -61,7 +73,8 @@ export function diffPixels(
     if (mask && !mask[px]) continue;
     if (a[i + 3] === 0 || b[i + 3] === 0) continue;
     valid++;
-    const cls = rule.test(decode(a[i]), decode(b[i]));
+    const ch = rule.channel === "g" ? i + 1 : i;
+    const cls = rule.test(decode(a[ch], rule.range ?? [-1, 1]), decode(b[ch], rule.range ?? [-1, 1]));
     if (!cls) continue;
     changed++;
     const c = rule.colors[cls - 1];
@@ -73,10 +86,9 @@ export function diffPixels(
   return { out, changed, valid };
 }
 
-async function renderRaw(metric: Rule["metric"], date: string, box: [number, number, number, number]): Promise<ImageData> {
+async function renderRaw(metric: Rule["metric"], date: string, box: [number, number, number, number], lookbackDays: number): Promise<ImageData> {
   const to = date;
-  // 10-day lookback: per-tile revisit + <=20% cloud filter can leave 5-day windows empty (north Taliabu tile)
-  const from = new Date(new Date(date).getTime() - 9 * 86400000).toISOString().slice(0, 10);
+  const from = new Date(new Date(date).getTime() - (lookbackDays - 1) * 86400000).toISOString().slice(0, 10);
   const res = await fetch("/api/render", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -99,8 +111,11 @@ export async function runChangeDetection(
   if (dateA > dateB) [dateA, dateB] = [dateB, dateA];
   const [west, south, east, north] = bbox(aoi);
   const box: [number, number, number, number] = [west, south, east, north];
-  const metric = CHANGE_RULES[type].metric;
-  const [a, b] = await Promise.all([renderRaw(metric, dateA, box), renderRaw(metric, dateB, box)]);
+  const rule = CHANGE_RULES[type];
+  const [a, b] = await Promise.all([
+    renderRaw(rule.metric, dateA, box, rule.lookbackDays ?? 10),
+    renderRaw(rule.metric, dateB, box, rule.lookbackDays ?? 10),
+  ]);
 
   const mask = aoiMask(aoi, box, a.width, a.height);
   const { out, changed, valid } = diffPixels(a.data, b.data, type, mask.mask);

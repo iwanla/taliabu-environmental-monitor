@@ -113,6 +113,19 @@ function evaluatePixel(s) {
   return [(mndwi + 1) / 2, 0, 0, s.dataMask];
 }
 `,
+  // SAR raw: VV -> R, VH -> G, encoded over [-30, 0] dB, alpha = dataMask.
+  "sar-raw": `//VERSION=3
+function setup() {
+  return {
+    input: ["VV", "VH", "dataMask"],
+    output: { bands: 4 }
+  };
+}
+function evaluatePixel(s) {
+  var enc = (v) => Math.max(0, Math.min(1, (v + 30) / 30));
+  return [enc(s.VV), enc(s.VH), 0, s.dataMask];
+}
+`,
   sar: `//VERSION=3
 function setup() {
   return {
@@ -153,7 +166,7 @@ export async function renderScene(
   const type = opts.type ?? "true-color";
   const evalscript = opts.evalscript ?? EVALSCRIPTS[type] ?? TRUE_COLOR_EVALSCRIPT;
 
-  const isSAR = type === "sar";
+  const isSAR = type.startsWith("sar");
   const dataType = isSAR ? "sentinel-1-grd" : "sentinel-2-l2a";
 
   const dataFilter: Record<string, any> = {

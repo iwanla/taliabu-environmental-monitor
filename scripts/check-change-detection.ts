@@ -30,4 +30,18 @@ console.assert(r3.out[3] === 255 && r3.out[7] === 255, "both water pixels painte
 const r4 = diffPixels(a, b, "vegetation-loss", new Uint8Array([0, 1, 1, 1]));
 console.assert(r4.changed === 0 && r4.valid === 2, `mask: expected 0 changed/2 valid, got ${r4.changed}/${r4.valid}`);
 
+// sar-loss: VH on channel G over [-30, 0] dB; -12 -> -15 (drop 3 dB) fires; -12 -> -13.5 does not; R ignored
+const encDb = (db: number) => Math.round(((db + 30) / 30) * 255);
+const sarPx = (vv: number, vh: number | null) =>
+  vh == null ? [0, 0, 0, 0] : [encDb(vv), encDb(vh), 0, 255];
+const g = new Uint8ClampedArray(
+  [[-8, -12], [-8, -12], [-8, -12]].flatMap((p) => sarPx(p[0], p[1])),
+);
+const h = new Uint8ClampedArray(
+  [[-8, -15], [-8, -13.5], [-8, null]].flatMap((p) => sarPx(p[0], p[1])),
+);
+const r5 = diffPixels(g, h, "sar-loss");
+console.assert(r5.changed === 1, `sar-loss changed: expected 1, got ${r5.changed}`);
+console.assert(r5.valid === 2, `sar-loss valid: expected 2, got ${r5.valid}`);
+
 console.log("change-detection checks OK");
