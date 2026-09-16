@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import { Map as MaplibreMap, LngLatBounds } from "maplibre-gl";
+import { Map as MaplibreMap, LngLatBounds, addProtocol } from "maplibre-gl";
 import type { GeoJSONSource, MapMouseEvent, RasterTileSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import MapLegend from "./MapLegend.vue";
@@ -60,6 +60,19 @@ const loadedSources = new Set<string>();
 const originalBasemapVisibility = new Map<string, "visible" | "none" | undefined>();
 
 const legendGroups = ref<{ id: string; title: string; items: { label: string; color: string }[] }[]>([]);
+
+// ponytail: poll-based movement gate — tile fetches wait until the map stops moving (250ms),
+// upgrade to movestart timestamps if precision ever matters
+let mapMoving = false;
+addProtocol("copernicus", async (params, abortController) => {
+  while (mapMoving && !abortController.signal.aborted) {
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  if (abortController.signal.aborted) throw new Error("aborted");
+  const url = `${location.origin}/api/${params.url.slice("copernicus://".length)}`;
+  const res = await fetch(url, { signal: abortController.signal });
+  return { data: await res.arrayBuffer() };
+});
 
 async function loadGeoJSON(sourceId: string, url: string) {
   if (!map || loadedSources.has(sourceId)) return null;
@@ -282,7 +295,7 @@ function rasterTileUrls(def: MapLayerDefinition, from: string) {
     ? new Date(new Date(from).getTime() + 30 * 86400000).toISOString().slice(0, 10)
     : from;
   const q = new URLSearchParams({ type: source.evalscriptKey, from, to, maxCloud: "20" });
-  return [`${location.origin}/api/render/tile/{z}/{x}/{y}?${q}`];
+  return [`copernicus://render/tile/{z}/{x}/{y}?${q}`];
 }
 
 function loadRasterLayer(def: MapLayerDefinition, from: string) {
@@ -327,7 +340,7 @@ async function updateSatelliteLayers(scenes: SatelliteAcquisition[]) {
 
   const from = scenes[0].acquiredAt.slice(0, 10);
   const q = new URLSearchParams({ type: "true-color", from, to: from, maxCloud: "100" });
-  const tiles = [`${location.origin}/api/render/tile/{z}/{x}/{y}?${q}`];
+  const tiles = [`copernicus://render/tile/{z}/{x}/{y}?${q}`];
 
   const existing = map.getSource(sourceId) as RasterTileSource | undefined;
   if (existing) {
@@ -484,6 +497,8 @@ onMounted(async () => {
       handleDrawFinish();
     });
 
+    map.on("movestart", () => { mapMoving = true; });
+    map.on("moveend", () => { mapMoving = false; });
     map.on("move", () => {
       if (!map) return;
       emit("viewChanged", {

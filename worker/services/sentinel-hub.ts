@@ -209,6 +209,7 @@ export interface RenderOptions {
   height?: number;
   type?: string;
   evalscript?: string;
+  signal?: AbortSignal;
 }
 
 export function getEvalscript(type: string): string | undefined {
@@ -239,6 +240,7 @@ export async function renderScene(
 
   const res = await fetch(PROCESS_URL, {
     method: "POST",
+    signal: opts.signal,
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
