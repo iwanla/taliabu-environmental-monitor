@@ -15,6 +15,16 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["maplibre-gl"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          maplibre: ["maplibre-gl"],
+          turf: ["@turf/turf"],
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       "/api": {
