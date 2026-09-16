@@ -115,8 +115,8 @@ export const staticLayers: MapLayerDefinition[] = [
 
   {
     id: "scl",
-    name: "Scene Classification",
-    sub: "SCL · quality/diagnostic",
+    name: "SCL",
+    sub: "Scene classification · diagnostic",
     category: "environment",
     type: "raster",
     defaultVisible: false,

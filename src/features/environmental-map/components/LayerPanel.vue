@@ -198,7 +198,10 @@ function toggleCollapse(id: LayerCategory) {
 
 .layer-row .name {
   flex: 1;
+  min-width: 0;
   font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .layer-row .name .sub {
