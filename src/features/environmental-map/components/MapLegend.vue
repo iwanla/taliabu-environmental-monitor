@@ -21,10 +21,12 @@ const CATEGORY_LABELS: Record<LayerCategory, string> = {
   administrative: "Administrative",
 };
 
-// mining-iup & watersheds get dynamic category colors via the `groups` prop
-function hasDynamicLegend(def: MapLayerDefinition) {
-  return def.id === "mining-iup" || def.id === "watersheds";
-}
+// mining-iup & watersheds get dynamic per-category colors via the `groups` prop,
+// merged into their layer's category group below
+const DYNAMIC_CATEGORY: Partial<Record<string, LayerCategory>> = {
+  "mining-iup": "mining",
+  watersheds: "hydrology",
+};
 
 function mainColor(def: Extract<MapLayerDefinition, { type: "vector" }>): string {
   const p = def.paint as Record<string, string>;
@@ -36,7 +38,7 @@ function mainColor(def: Extract<MapLayerDefinition, { type: "vector" }>): string
 const staticGroups = computed(() => {
   const out: { id: string; title: string; items: { label: string; color: string }[] }[] = [];
   for (const def of staticLayers) {
-    if (!isVisible(def.id) || hasDynamicLegend(def)) continue;
+    if (!isVisible(def.id) || DYNAMIC_CATEGORY[def.id]) continue;
     const items = def.legend ?? [{ label: def.name, color: mainColor(def as any) }];
     const group = out.find((g) => g.id === def.category);
     if (group) group.items.push(...items);
@@ -45,7 +47,17 @@ const staticGroups = computed(() => {
   return out;
 });
 
-const allGroups = computed(() => [...staticGroups.value, ...(props.groups ?? [])]);
+const allGroups = computed(() => {
+  const out = [...staticGroups.value];
+  for (const g of props.groups ?? []) {
+    if (!isVisible(g.id)) continue;
+    const cat = DYNAMIC_CATEGORY[g.id];
+    const target = cat ? out.find((h) => h.id === cat) : undefined;
+    if (target) target.items.push(...g.items);
+    else out.push({ id: cat ?? g.id, title: cat ? CATEGORY_LABELS[cat] : g.title, items: g.items });
+  }
+  return out;
+});
 </script>
 
 <template>
