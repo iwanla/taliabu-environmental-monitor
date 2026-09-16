@@ -13,6 +13,7 @@ function setup() {
 function evaluatePixel(s) {
   return [2.5 * s.B04, 2.5 * s.B03, 2.5 * s.B02, s.dataMask];
 }`,
+  // Copernicus Browser / EO Browser default NDVI ramp (custom-scripts repo)
   ndvi: `//VERSION=3
 function setup() {
   return {
@@ -20,15 +21,23 @@ function setup() {
     output: { bands: 4 }
   };
 }
+const ramp = [
+  [-0.5, [0.098, 0.078, 0.078]],
+  [0.0, [0.749, 0.110, 0.047]],
+  [0.1, [0.976, 0.424, 0.157]],
+  [0.2, [0.953, 0.651, 0.055]],
+  [0.3, [0.843, 0.757, 0.055]],
+  [0.4, [0.659, 0.773, 0.271]],
+  [0.5, [0.443, 0.702, 0.267]],
+  [0.6, [0.341, 0.655, 0.286]],
+  [0.7, [0.247, 0.620, 0.275]],
+  [0.8, [0.173, 0.561, 0.267]],
+  [0.9, [0.078, 0.478, 0.239]],
+  [1.0, [0.055, 0.361, 0.188]]
+];
 function evaluatePixel(s) {
   var ndvi = (s.B08 - s.B04) / (s.B08 + s.B04 + 1e-10);
-  var c = colorBlend(ndvi, [0.0, 0.25, 0.5, 0.75, 1.0], [
-    [0.65, 0.15, 0.10, 1],
-    [0.90, 0.60, 0.15, 1],
-    [0.95, 0.90, 0.40, 1],
-    [0.45, 0.75, 0.25, 1],
-    [0.05, 0.40, 0.05, 1]
-  ]);
+  var c = colorBlend(ndvi, ramp.map(x => x[0]), ramp.map(x => x[1]));
   return [c[0], c[1], c[2], s.dataMask];
 }`,
   ndwi: `//VERSION=3
