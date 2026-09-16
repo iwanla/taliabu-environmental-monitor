@@ -3,7 +3,7 @@ import { onMounted, ref, watch, computed } from "vue";
 import { useDatasetMetadata } from "../composables/useDatasetMetadata";
 import { analyzeAoi, type AoiAnalysis } from "../composables/useAoiAnalysis";
 import { CHANGE_RULES, type ChangeResult, type ChangeType } from "../composables/changeDetection";
-import { ALERT_LABELS, alertLabel, DEFAULT_THRESHOLDS, evaluateAlerts, type AlertThresholds, type EnvAlert } from "../composables/alerts";
+import { ALERT_LABELS, alertLabel, DEFAULT_THRESHOLDS, evaluateAlerts, type AlertThresholds, type AlertEvidence, type EnvAlert } from "../composables/alerts";
 
 const props = defineProps<{
   feature: GeoJSON.Feature | null;
@@ -82,11 +82,35 @@ interface SavedAlert {
   kind: string;
   severity: string;
   aoi: GeoJSON.Polygon | null;
-  evidence: { bbox: [number, number, number, number]; dateB: string; changedHa: number } & Record<string, unknown>;
+  evidence: AlertEvidence;
   createdAt: string;
 }
 const logAlerts = ref<SavedAlert[]>([]);
 const logKind = ref("");
+const expandedAlert = ref<number | null>(null);
+
+function toggleAlert(a: SavedAlert) {
+  expandedAlert.value = expandedAlert.value === a.id ? null : a.id;
+  emit("focusAlert", a);
+}
+
+function thresholdText(t?: AlertThresholds): string {
+  const parts: string[] = [];
+  if (t?.vegLossHa != null) parts.push(`veg ≥ ${t.vegLossHa} ha`);
+  if (t?.distanceM != null) parts.push(`dist ≤ ${t.distanceM} m`);
+  return parts.join(" · ") || "—";
+}
+
+function contextText(a: { evidence: AlertEvidence }): string {
+  const c = a.evidence.context;
+  if (!c) return "";
+  const parts: string[] = [];
+  if (typeof c.distanceM === "number") parts.push(formatM(c.distanceM));
+  if (typeof c.nearestRiver === "string") parts.push(c.nearestRiver);
+  if (Array.isArray(c.permits) && c.permits.length) parts.push(c.permits.join(", "));
+  if (!c.distanceM && typeof c.coastDistanceM === "number") parts.push(`coast ${formatM(c.coastDistanceM)}`);
+  return parts.join(" · ");
+}
 
 async function loadAlerts() {
   try {
@@ -278,13 +302,23 @@ function formatHa(ha?: number): string {
           <label>Distance ≤ m<input v-model.number="thresholds.distanceM" type="number" min="0" step="100" /></label>
         </div>
         <template v-if="alerts.length">
-          <div v-for="(a, i) in alerts" :key="i" class="alert-item" :title="a.evidence.rule">
-            <span class="badge" :class="a.severity === 'high' ? 'badge-high' : 'badge-medium'">{{ a.severity }}</span>
-            <div class="alert-body">
-              <strong>{{ alertLabel(a.kind) }}</strong>
-              <span class="alert-detail">{{ alertDetail(a) }}</span>
+          <template v-for="(a, i) in alerts" :key="i">
+            <div class="alert-item" :title="a.evidence.rule">
+              <span class="badge" :class="a.severity === 'high' ? 'badge-high' : 'badge-medium'">{{ a.severity }}</span>
+              <div class="alert-body">
+                <strong>{{ alertLabel(a.kind) }}</strong>
+                <span class="alert-detail">{{ alertDetail(a) }}</span>
+              </div>
             </div>
-          </div>
+            <div class="alert-evidence">
+              <div class="metric-row"><span>Rule</span><span class="v">{{ a.evidence.rule }}</span></div>
+              <div class="metric-row"><span>Method</span><span class="v">{{ a.evidence.method }}</span></div>
+              <div class="metric-row"><span>Cloud-free</span><span class="v">{{ Math.round(a.evidence.coverage * 100) }}%</span></div>
+              <div class="metric-row"><span>Threshold</span><span class="v">{{ thresholdText(a.evidence.thresholds) }}</span></div>
+              <div v-if="contextText(a)" class="metric-row"><span>Context</span><span class="v">{{ contextText(a) }}</span></div>
+              <div class="metric-row"><span>Source</span><span class="v">Sentinel-2 L2A · {{ a.evidence.generatedAt.slice(0, 10) }}</span></div>
+            </div>
+          </template>
           <button class="aoi-clear" :disabled="saving" @click="saveAlerts">
             {{ saving ? "Saving…" : savedCount ? `Saved to log (${savedCount})` : "Save to alert log" }}
           </button>
@@ -313,11 +347,22 @@ function formatHa(ha?: number): string {
         <option v-for="(label, kind) in ALERT_LABELS" :key="kind" :value="kind">{{ label }}</option>
       </select>
       <template v-if="logAlerts.length">
-        <button v-for="a in logAlerts" :key="a.id" class="alert-log-row" :title="String(a.evidence.rule ?? '')" @click="emit('focusAlert', a)">
-          <span class="dot" :class="a.severity"></span>
-          <span class="alert-log-kind">{{ alertLabel(a.kind) }}</span>
-          <span class="alert-log-meta">{{ formatHa(a.evidence.changedHa) }} · {{ a.evidence.dateB }}</span>
-        </button>
+        <template v-for="a in logAlerts" :key="a.id">
+          <button class="alert-log-row" :title="String(a.evidence.rule ?? '')" @click="toggleAlert(a)">
+            <span class="dot" :class="a.severity"></span>
+            <span class="alert-log-kind">{{ alertLabel(a.kind) }}</span>
+            <span class="alert-log-meta">{{ formatHa(a.evidence.changedHa) }} · {{ a.evidence.dateB }}</span>
+          </button>
+          <div v-if="expandedAlert === a.id" class="alert-evidence">
+            <div class="metric-row"><span>Rule</span><span class="v">{{ a.evidence.rule }}</span></div>
+            <div class="metric-row"><span>Method</span><span class="v">{{ a.evidence.method }}</span></div>
+            <div class="metric-row"><span>Cloud-free</span><span class="v">{{ Math.round(a.evidence.coverage * 100) }}%</span></div>
+            <div class="metric-row"><span>Window</span><span class="v">{{ a.evidence.dateA }} → {{ a.evidence.dateB }}</span></div>
+            <div class="metric-row"><span>Threshold</span><span class="v">{{ thresholdText(a.evidence.thresholds) }}</span></div>
+            <div v-if="contextText(a)" class="metric-row"><span>Context</span><span class="v">{{ contextText(a) }}</span></div>
+            <div class="metric-row"><span>Source</span><span class="v">Sentinel-2 L2A · {{ a.evidence.generatedAt?.slice(0, 10) }}</span></div>
+          </div>
+        </template>
       </template>
       <div v-else class="metric-row"><span>Entries</span><span class="v">0</span></div>
     </div>
@@ -450,6 +495,17 @@ function formatHa(ha?: number): string {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink-faint);
+}
+
+.alert-evidence {
+  margin: 0 0 8px 24px;
+  border-left: 2px solid var(--line-strong);
+  padding-left: 10px;
+}
+
+.alert-evidence .metric-row {
+  font-size: 11.5px;
+  padding: 4px 0;
 }
 
 .alert-log-row {

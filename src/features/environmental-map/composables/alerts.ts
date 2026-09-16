@@ -8,25 +8,27 @@ export interface AlertThresholds {
 
 export const DEFAULT_THRESHOLDS: AlertThresholds = { vegLossHa: 5, distanceM: 500 };
 
+export interface AlertEvidence {
+  rule: string;
+  method: string;
+  metric: string;
+  changedHa: number;
+  coverage: number;
+  dateA: string;
+  dateB: string;
+  bbox: [number, number, number, number];
+  thresholds: AlertThresholds;
+  context?: Record<string, unknown>;
+  source: string;
+  generatedAt: string;
+}
+
 export interface EnvAlert {
   kind: string;
   severity: "high" | "medium";
   aoi: GeoJSON.Polygon | null;
   sceneId: string | null;
-  evidence: {
-    rule: string;
-    method: string;
-    metric: string;
-    changedHa: number;
-    coverage: number;
-    dateA: string;
-    dateB: string;
-    bbox: [number, number, number, number];
-    thresholds: AlertThresholds;
-    context?: Record<string, unknown>;
-    source: string;
-    generatedAt: string;
-  };
+  evidence: AlertEvidence;
 }
 
 // Alert kinds double as the D1 `kind` value and the UI filter key.
