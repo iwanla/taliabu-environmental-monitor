@@ -59,13 +59,15 @@ const openDetails = ref<Record<string, boolean>>({});
           <div class="layer-row">
             <button
               v-if="layer.description || layer.legend"
-              class="detail-toggle"
+              class="name"
               type="button"
               :aria-expanded="!!openDetails[layer.id]"
-              :title="openDetails[layer.id] ? 'Hide layer details' : 'Show layer details'"
               @click="openDetails[layer.id] = !openDetails[layer.id]"
-            >{{ openDetails[layer.id] ? "▾" : "▸" }}</button>
-            <span class="name">
+            >
+              {{ layer.name }}
+              <span v-if="layer.sub" class="sub">{{ layer.sub }}</span>
+            </button>
+            <span v-else class="name">
               {{ layer.name }}
               <span v-if="layer.sub" class="sub">{{ layer.sub }}</span>
             </span>
@@ -216,6 +218,16 @@ const openDetails = ref<Record<string, boolean>>({});
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
+}
+
+button.name {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
 }
 
 .layer-row .name .sub {
@@ -226,20 +238,8 @@ const openDetails = ref<Record<string, boolean>>({});
   margin-top: 1px;
 }
 
-.layer-row .detail-toggle {
-  border: 0;
-  background: none;
-  padding: 0;
-  font-size: 10px;
-  color: var(--ink-faint);
-  cursor: pointer;
-  flex: none;
-  width: 12px;
-  text-align: center;
-}
-
 .layer-detail {
-  padding: 2px 16px 9px 37px;
+  padding: 2px 16px 9px;
   font-size: 11px;
   color: var(--ink-faint);
   display: flex;
