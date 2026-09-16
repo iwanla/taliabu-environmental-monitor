@@ -17,7 +17,7 @@ function maskedScript(script: string): string {
   );
 }
 
-const MASKED_TYPES = new Set(["ndvi", "ndwi", "mndwi", "false-color"]);
+const MASKED_TYPES = new Set(["ndvi", "ndwi", "mndwi", "false-color", "ndti", "shore-band"]);
 
 const EVALSCRIPTS: Record<string, string> = {
   "true-color": `//VERSION=3
@@ -138,6 +138,41 @@ function setup() {
 }
 function evaluatePixel(s) {
   return [2.5 * s.B08, 2.5 * s.B04, 2.5 * s.B03, s.dataMask];
+}`,
+  // NDTI (Normalized Difference Turbidity Index, Lacaux et al. 2007):
+  // (Red - Green) / (Red + Green) — higher = more turbid water
+  ndti: `//VERSION=3
+function setup() {
+  return {
+    input: ["B04", "B03", "dataMask"],
+    output: { bands: 4 }
+  };
+}
+function evaluatePixel(s) {
+  var val = (s.B04 - s.B03) / (s.B04 + s.B03 + 1e-10);
+  var c = colorBlend(val, [-0.4, -0.1, 0.05, 0.25, 0.6], [
+    [0.05, 0.25, 0.45, 1],
+    [0.15, 0.45, 0.60, 1],
+    [0.45, 0.65, 0.60, 1],
+    [0.75, 0.65, 0.35, 1],
+    [0.55, 0.30, 0.10, 1]
+  ]);
+  return [c[0], c[1], c[2], s.dataMask];
+}`,
+  // Scene water edge: NDWI > 0 water with a bright shoreline band for
+  // comparison with the baseline coastline across scenes/periods
+  "shore-band": `//VERSION=3
+function setup() {
+  return {
+    input: ["B03", "B08", "dataMask"],
+    output: { bands: 4 }
+  };
+}
+function evaluatePixel(s) {
+  var val = (s.B03 - s.B08) / (s.B03 + s.B08 + 1e-10);
+  if (val <= 0) return [0, 0, 0, 0];
+  if (val < 0.08) return [0.92, 0.58, 0.15, s.dataMask];
+  return [0.35, 0.62, 0.78, s.dataMask];
 }`,
   // Copernicus Browser SWIR composite, verbatim
   "bare-soil": `//VERSION=3

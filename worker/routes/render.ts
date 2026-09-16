@@ -6,7 +6,7 @@ type Env = {
   COPERNICUS_CLIENT_SECRET: string;
 };
 
-const VALID_TYPES = ["true-color", "ndvi", "ndwi", "mndwi", "false-color", "bare-soil", "sar", "sar-raw", "scl", "ndvi-raw", "mndwi-raw"];
+const VALID_TYPES = ["true-color", "ndvi", "ndwi", "mndwi", "false-color", "bare-soil", "sar", "sar-raw", "scl", "ndvi-raw", "mndwi-raw", "ndti", "shore-band"];
 
 const render = new Hono<{ Bindings: Env }>();
 

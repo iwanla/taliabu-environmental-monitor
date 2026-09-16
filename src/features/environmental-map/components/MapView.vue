@@ -451,6 +451,7 @@ onMounted(async () => {
     bearing: props.initialView?.bearing ?? 0,
     pitch: props.initialView?.pitch ?? 0,
   });
+  (window as any).__map = map;
 
   map.on("load", async () => {
     if (!map) return;

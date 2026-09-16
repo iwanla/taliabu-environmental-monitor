@@ -106,5 +106,41 @@
     "refreshPolicy": "manual",
     "license": null,
     "notes": "Preprocessed by scripts/terrain/preprocess.py -> public/data/terrain/{elevation,slope}.png; derived products, datum EGM2008"
+  },
+  {
+    "id": "ndti",
+    "category": "coastal",
+    "source": "Copernicus Sentinel-2 L2A (processing: NDTI, Lacaux et al. 2007)",
+    "sourceUrl": "https://browser.dataspace.copernicus.eu",
+    "retrievedAt": "2026-09-16",
+    "sourceUpdatedAt": null,
+    "version": "1.0.0",
+    "refreshPolicy": "per-scene",
+    "license": null,
+    "notes": "Normalized Difference Turbidity Index (Red-Green)/(Red+Green). Remote-sensing proxy for water turbidity, NOT a laboratory measurement; no chemical composition or pollution claim can be derived."
+  },
+  {
+    "id": "scene-water-edge",
+    "category": "coastal",
+    "source": "Copernicus Sentinel-2 L2A (processing: NDWI > 0 water mask, shoreline band 0-0.08)",
+    "sourceUrl": "https://browser.dataspace.copernicus.eu",
+    "retrievedAt": "2026-09-16",
+    "sourceUpdatedAt": null,
+    "version": "1.0.0",
+    "refreshPolicy": "per-scene",
+    "license": null,
+    "notes": "Scene-derived water edge for visual comparison against the BIG baseline coastline; cloud-masked via SCL."
+  },
+  {
+    "id": "river-outlets",
+    "category": "coastal",
+    "source": "DEMNAS via BIG ImageServer (D8 stream mouths) + mining IUP proximity",
+    "sourceUrl": "https://geoservices.big.go.id/raster/rest/services/DEMNAS/DEM_Indonesia/ImageServer",
+    "retrievedAt": "2026-09-16",
+    "sourceUpdatedAt": null,
+    "version": "1.0.0",
+    "refreshPolicy": "manual",
+    "license": null,
+    "notes": "48 D8-derived stream mouths with modelled catchment area and nearest mining permit for downstream context; derived model output, not surveyed data."
   }
 ]

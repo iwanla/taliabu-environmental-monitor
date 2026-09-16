@@ -856,6 +856,17 @@ Coastal analysis tersedia dalam map dan compare mode.
 - river outlet dan nearby mining context dapat ditampilkan;
 - tidak ada klaim chemical pollution otomatis.
 
+## Status
+
+**Complete** — 2026-09-16
+
+- `ndti` evalscript (worker): NDTI (Red−Green)/(Red+Green), Lacaux et al. 2007, ramp clear→turbid; dimasukkan ke MASKED_TYPES (SCL cloud mask — verified: 30% px transparan pada tile bertutup awan). Layer `Turbidity (NDTI)` (coastal), deskripsi + metadata datasets.json menegaskan: proxy remote-sensing, bukan pengukuran laboratorium, tidak bisa dipakai klaim komposisi/polutan.
+- `shore-band` evalscript: air = NDWI > 0, band terang di tepi air (0–0.08) → layer `Scene water edge` untuk perbandingan visual tepi pantai scene-berjalan vs `Coastline` baseline BIG, dan antarperiode lewat compare mode. Masked via SCL.
+- `scripts/terrain/outlets.py` → `river-outlets.geojson`: 48 muara D8 (dari Phase 11), properties `catchmentAreaKm2` + `nearestIup` + `nearestIupKm` (min 1.7, median 8.5, max 16.0 km). Layer `River outlets` (point); klik → inspector menampilkan konteks IUP terdekat. Verified di browser (klik outlet → inspector hit).
+- Map handle diekspos sebagai `window.__map` untuk verifikasi browser.
+- Tile smoke test: ndti 200 (biru-hijau air), shore-band 200 (amber band hadir), render dua periode berbeda (6842 vs 140 px shoreline) → comparison antarperiode tersedia.
+- Tidak ada klaim chemical pollution otomatis — semua deskripsi layer menyatakan model/proxy.
+
 # Phase 13 — Analytics Dashboard
 
 ## Goal
