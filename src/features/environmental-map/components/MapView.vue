@@ -578,10 +578,16 @@ watch(
     <div class="map-topleft">
       <span class="chip">optical · L2A</span>
       <span class="chip sar">SAR available</span>
-      <label v-if="showCloudMaskToggle" class="chip mask-chip" title="Hide cloud, shadow and cirrus pixels using the SCL quality mask">
-        <input type="checkbox" :checked="cloudMaskOn" @change="toggleCloudMask">
+      <button
+        v-if="showCloudMaskToggle"
+        class="chip mask-chip"
+        :class="{ active: cloudMaskOn }"
+        type="button"
+        title="Hide cloud, shadow and cirrus pixels using the SCL quality mask"
+        @click="toggleCloudMask"
+      >
         cloud mask
-      </label>
+      </button>
     </div>
 
     <div class="map-controls">
@@ -640,16 +646,15 @@ watch(
 }
 
 .mask-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   cursor: pointer;
   user-select: none;
+  border: 1px solid rgba(255, 255, 255, .4);
+  font-family: inherit;
 }
 
-.mask-chip input {
-  accent-color: var(--ink-soft);
-  margin: 0;
+.mask-chip.active {
+  background: rgba(91, 94, 143, .92);
+  color: #fff;
 }
 
 .map-controls {
