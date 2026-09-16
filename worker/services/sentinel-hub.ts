@@ -2,6 +2,23 @@ import { getAccessToken } from "./copernicus-token";
 
 const PROCESS_URL = "https://sh.dataspace.copernicus.eu/process/v1";
 
+const SCL_HELPERS = `
+function isValid(scl) {
+  return scl != 0 && scl != 1 && scl != 3 && scl != 7 && scl != 8 && scl != 9 && scl != 10;
+}`;
+
+// ponytail: generated per-request by adding SCL to the input and gating alpha on isValid;
+// regenerate server-side if a script's alpha expression ever stops ending in `.dataMask]`
+function maskedScript(script: string): string {
+  return (
+    script
+      .replace('"dataMask"]', '"SCL", "dataMask"]')
+      .replace(/(\w+)\.dataMask\]/g, "$1.dataMask * (isValid($1.SCL) ? 1 : 0)]") + SCL_HELPERS
+  );
+}
+
+const MASKED_TYPES = new Set(["ndvi", "ndwi", "mndwi", "false-color"]);
+
 const EVALSCRIPTS: Record<string, string> = {
   "true-color": `//VERSION=3
 function setup() {
@@ -209,6 +226,7 @@ export interface RenderOptions {
   height?: number;
   type?: string;
   evalscript?: string;
+  masked?: boolean;
   signal?: AbortSignal;
 }
 
@@ -223,7 +241,8 @@ export async function renderScene(
 ): Promise<ReadableStream<Uint8Array>> {
   const token = await getAccessToken(clientId, clientSecret);
   const type = opts.type ?? "true-color";
-  const evalscript = opts.evalscript ?? EVALSCRIPTS[type] ?? TRUE_COLOR_EVALSCRIPT;
+  const masked = !!opts.masked && MASKED_TYPES.has(type);
+  const evalscript = opts.evalscript ?? (masked ? maskedScript(EVALSCRIPTS[type]) : EVALSCRIPTS[type]) ?? TRUE_COLOR_EVALSCRIPT;
 
   const isSAR = type.startsWith("sar");
   const dataType = isSAR ? "sentinel-1-grd" : "sentinel-2-l2a";

@@ -50,5 +50,6 @@ export interface RasterLayerDefinition {
   source: {
     type: "raster";
     evalscriptKey: string;
+    maskable?: boolean;
   };
 }

@@ -131,7 +131,7 @@ export const staticLayers: MapLayerDefinition[] = [
     type: "raster",
     defaultVisible: false,
     opacity: 0.85,
-    source: { type: "raster", evalscriptKey: "ndvi" },
+    source: { type: "raster", evalscriptKey: "ndvi", maskable: true },
   },
   {
     id: "ndwi",
@@ -141,7 +141,7 @@ export const staticLayers: MapLayerDefinition[] = [
     type: "raster",
     defaultVisible: false,
     opacity: 0.85,
-    source: { type: "raster", evalscriptKey: "ndwi" },
+    source: { type: "raster", evalscriptKey: "ndwi", maskable: true },
   },
   {
     id: "mndwi",
@@ -151,7 +151,7 @@ export const staticLayers: MapLayerDefinition[] = [
     type: "raster",
     defaultVisible: false,
     opacity: 0.85,
-    source: { type: "raster", evalscriptKey: "mndwi" },
+    source: { type: "raster", evalscriptKey: "mndwi", maskable: true },
   },
   {
     id: "false-color",
@@ -161,7 +161,7 @@ export const staticLayers: MapLayerDefinition[] = [
     type: "raster",
     defaultVisible: false,
     opacity: 0.85,
-    source: { type: "raster", evalscriptKey: "false-color" },
+    source: { type: "raster", evalscriptKey: "false-color", maskable: true },
   },
   {
     id: "bare-soil",

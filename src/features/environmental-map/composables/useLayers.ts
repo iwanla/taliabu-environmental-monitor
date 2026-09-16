@@ -8,6 +8,7 @@ interface LayerState {
 }
 
 const layerStates = reactive<Record<string, LayerState>>({});
+const cloudMasks = reactive<Record<string, boolean>>({});
 
 staticLayers.forEach((layer) => {
   layerStates[layer.id] = {
@@ -47,6 +48,14 @@ export function useLayers() {
     return staticLayers.filter((l) => l.category === category);
   }
 
+  function hasCloudMask(layerId: string): boolean {
+    return cloudMasks[layerId] ?? false;
+  }
+
+  function toggleCloudMask(layerId: string) {
+    cloudMasks[layerId] = !(cloudMasks[layerId] ?? false);
+  }
+
   return {
     layers,
     isVisible,
@@ -55,5 +64,7 @@ export function useLayers() {
     setLayer,
     setOpacity,
     getByCategory,
+    hasCloudMask,
+    toggleCloudMask,
   };
 }

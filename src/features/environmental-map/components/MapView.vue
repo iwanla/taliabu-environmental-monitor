@@ -53,7 +53,7 @@ const emit = defineEmits<{
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 const drawPoints = ref<[number, number][]>([]);
 
-const { layers, isVisible, getOpacity } = useLayers();
+const { layers, isVisible, getOpacity, hasCloudMask } = useLayers();
 const mapContainer = ref<HTMLDivElement>();
 let map: MaplibreMap | null = null;
 const loadedSources = new Set<string>();
@@ -295,6 +295,7 @@ function rasterTileUrls(def: MapLayerDefinition, from: string) {
     ? new Date(new Date(from).getTime() + 30 * 86400000).toISOString().slice(0, 10)
     : from;
   const q = new URLSearchParams({ type: source.evalscriptKey, from, to, maxCloud: "20" });
+  if (hasCloudMask(def.id)) q.set("mask", "1");
   return [`copernicus://render/tile/{z}/{x}/{y}?${q}`];
 }
 
@@ -539,16 +540,18 @@ onUnmounted(() => {
 });
 
 watch(
-  () => layers.value.map((l) => ({ id: l.id, type: l.type, visible: isVisible(l.id), opacity: getOpacity(l.id) })),
+  () => layers.value.map((l) => ({ id: l.id, type: l.type, visible: isVisible(l.id), opacity: getOpacity(l.id), mask: hasCloudMask(l.id) })),
   (curr, prev) => {
     layers.value.forEach((def) => {
       if (def.type === "raster") {
         const wasVisible = prev?.find((p) => p.id === def.id)?.visible ?? false;
+        const wasMasked = prev?.find((p) => p.id === def.id)?.mask ?? false;
         const isVisibleNow = isVisible(def.id);
+        const maskChanged = wasMasked !== hasCloudMask(def.id);
+        const scene = props.activeScenes?.[0];
 
-        if (isVisibleNow && !wasVisible) {
-          const scene = props.activeScenes?.[0];
-          if (scene) loadRasterLayer(def, scene.acquiredAt.slice(0, 10));
+        if (isVisibleNow && scene && (!wasVisible || maskChanged)) {
+          loadRasterLayer(def, scene.acquiredAt.slice(0, 10));
         } else if (!isVisibleNow && wasVisible) {
           unloadRasterLayer(def);
         } else if (isVisibleNow) {

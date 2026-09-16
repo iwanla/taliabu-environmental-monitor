@@ -110,6 +110,7 @@ render.get("/render/tile/:z/:x/:y", async (c) => {
       width: 256,
       height: 256,
       type,
+      masked: c.req.query("mask") === "1",
       signal: c.req.raw.signal,
     });
     return new Response(imageStream, {
