@@ -170,7 +170,6 @@ function formatHa(ha?: number): string {
         <option value="vegetation-loss">Vegetation loss</option>
         <option value="new-bare-land">New bare land</option>
         <option value="water-change">Water change</option>
-        <option value="sar-loss">SAR loss (cloud-penetrating)</option>
       </select>
       <div class="change-dates">
         <label>From<input v-model="dateA" type="date" class="change-input" /></label>
@@ -185,12 +184,9 @@ function formatHa(ha?: number): string {
       <template v-else-if="change">
         <div class="metric-row"><span>Changed area</span><span class="v">{{ formatHa(change.changedHa) }}</span></div>
         <div class="metric-row"><span>Window</span><span class="v">{{ change.dateA }} → {{ change.dateB }}</span></div>
-        <div class="metric-row">
-          <span>Confidence</span>
-          <span class="v">{{ Math.round(change.coverage * 100) }}% {{ change.type === "sar-loss" ? "data coverage" : "cloud-free" }}</span>
-        </div>
+        <div class="metric-row"><span>Confidence</span><span class="v">{{ Math.round(change.coverage * 100) }}% cloud-free</span></div>
         <div class="metric-row"><span>Method</span><span class="v">{{ CHANGE_RULES[change.type].label }}</span></div>
-        <div class="metric-row"><span>Source</span><span class="v">{{ change.type === "sar-loss" ? "Sentinel-1 GRD" : "Sentinel-2 L2A" }}</span></div>
+        <div class="metric-row"><span>Source</span><span class="v">Sentinel-2 L2A</span></div>
         <p class="disclaimer">Remote-sensing proxy, not a field measurement or legal conclusion.</p>
       </template>
 

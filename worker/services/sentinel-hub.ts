@@ -113,7 +113,7 @@ function evaluatePixel(s) {
   return [(mndwi + 1) / 2, 0, 0, s.dataMask];
 }
 `,
-  // SAR raw: VV -> R, VH -> G, encoded over [-30, 0] dB, alpha = dataMask.
+  // SAR raw: VV -> R, VH -> G as dB over [-30, 0], encoded to 0..1. Bands arrive as LINEAR sigma0 power.
   "sar-raw": `//VERSION=3
 function setup() {
   return {
@@ -122,8 +122,9 @@ function setup() {
   };
 }
 function evaluatePixel(s) {
-  var enc = (v) => Math.max(0, Math.min(1, (v + 30) / 30));
-  return [enc(s.VV), enc(s.VH), 0, s.dataMask];
+  var toDb = (v) => 10 * Math.log(v + 1e-8) / Math.LN10;
+  var enc = (db) => Math.max(0, Math.min(1, (db + 30) / 30));
+  return [enc(toDb(s.VV)), enc(toDb(s.VH)), 0, s.dataMask];
 }
 `,
   sar: `//VERSION=3

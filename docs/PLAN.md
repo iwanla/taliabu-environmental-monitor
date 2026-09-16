@@ -697,6 +697,7 @@ Map dapat menampilkan derived change polygons/statistics.
 
 - 3 change types: vegetation loss (NDVI drop >= 0.15), new bare land (NDVI crosses below 0.2), water change (MNDWI crosses 0.1 both directions)
 - SAR extension: `sar-loss` (VH backscatter drop >= 2.5 dB, Sentinel-1 GRD, cloud-penetrating untuk Maluku Utara); `sar-raw` evalscript encodes VV->R, VH->G over [-30, 0] dB; 14-day lookback untuk revisit 12 hari
+- REVERTED sar-loss rule (same day): two-scene SAR delta proven unsound on dense tropical forest — measured on Taliabu tile, VH sits at S1 noise floor (~-24 dB, cannot drop; all fires were wetland/flood transitions), VV swings 2-3 dB between passes (weather/orbit, 41% of intact tile at 2 dB threshold). Kept: `sar-raw` evalscript (fixed: S1 bands are LINEAR power, not dB; needs 10*log10) and `isSAR` route fix. Real SAR change detection needs a multi-scene baseline (median of >=4 passes) — openEO territory.
 - `ndvi-raw` / `mndwi-raw` / `sar-raw` evalscripts encode metric into raw channels, alpha = dataMask
 - Client-side per-pixel diff via OffscreenCanvas (`changeDetection.ts`), 2x `/api/render` per analysis (AOI bbox, 512px, 4-day lookback window per date)
 - Result: colored change overlay (maplibre image source) + stats in InspectorPanel
