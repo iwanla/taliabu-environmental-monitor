@@ -16,7 +16,7 @@ const props = defineProps<{
   changeError?: string | null;
 }>();
 
-const emit = defineEmits<{ clearAoi: []; runChange: [payload: { type: ChangeType; dateA: string; dateB: string }]; focusAlert: [alert: SavedAlert] }>();
+const emit = defineEmits<{ clearAoi: []; runChange: [payload: { type: ChangeType; dateA: string; dateB: string }]; focusAlert: [alert: SavedAlert]; unfocusAlert: [] }>();
 
 const changeType = ref<ChangeType>("vegetation-loss");
 const dateA = ref("");
@@ -90,8 +90,13 @@ const logKind = ref("");
 const expandedAlert = ref<number | null>(null);
 
 function toggleAlert(a: SavedAlert) {
-  expandedAlert.value = expandedAlert.value === a.id ? null : a.id;
-  emit("focusAlert", a);
+  if (expandedAlert.value === a.id) {
+    expandedAlert.value = null;
+    emit("unfocusAlert");
+  } else {
+    expandedAlert.value = a.id;
+    emit("focusAlert", a);
+  }
 }
 
 function thresholdText(t?: AlertThresholds): string {

@@ -45,10 +45,17 @@ const aoi = ref<GeoJSON.Polygon | null>(null);
 const aoiError = ref<string | null>(null);
 const focusBounds = ref<[number, number, number, number] | null>(null);
 const focusAlertAoi = ref<GeoJSON.Polygon | null>(null);
+const preFocusCamera = ref<[number, number, number, number] | null>(null);
 
 function handleFocusAlert(alert: { aoi: GeoJSON.Polygon | null; evidence: { bbox: [number, number, number, number] } }) {
+  if (!focusAlertAoi.value) preFocusCamera.value = camera.value?.bounds ?? null;
   focusBounds.value = alert.evidence.bbox;
   focusAlertAoi.value = alert.aoi;
+}
+
+function handleUnfocusAlert() {
+  focusAlertAoi.value = null;
+  if (preFocusCamera.value) focusBounds.value = preFocusCamera.value;
 }
 
 const change = ref<ChangeResult | null>(null);
@@ -372,6 +379,7 @@ onMounted(() => {
       @clear-aoi="clearAoi"
       @run-change="handleRunChange"
       @focus-alert="handleFocusAlert"
+      @unfocus-alert="handleUnfocusAlert"
     />
     <Timeline
        v-if="basemapMode === 'satellite'"
