@@ -54,6 +54,23 @@ export const staticLayers: MapLayerDefinition[] = [
     },
   },
   {
+    id: "drainage",
+    name: "Derived drainage",
+    sub: "D8 DEMNAS · flow model",
+    description: "Stream network derived from DEMNAS via fill-sinks, D8 flow direction and flow accumulation (catchments > ~9 km²). 87 of 90 stream segments align with the BIG reference network — use it for flow context where BIG rivers are incomplete.",
+    category: "hydrology",
+    type: "vector",
+    defaultVisible: false,
+    opacity: 0.9,
+    source: { type: "geojson", url: "/data/hydrology/drainage.geojson" },
+    layerType: "line",
+    paint: {
+      "line-color": "#7FB8C4",
+      "line-width": 1.5,
+      "line-dasharray": [2, 2],
+    },
+  },
+  {
     id: "coastline",
     name: "Coastline",
     description: "Baseline coastline used for distance-to-coast measurement in the AOI analysis panel.",

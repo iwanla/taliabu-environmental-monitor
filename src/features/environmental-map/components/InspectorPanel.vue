@@ -172,6 +172,10 @@ function formatHa(ha?: number): string {
             <span>Slope (DEMNAS)</span>
             <span class="v">mean {{ analysis.slope!.meanDeg.toFixed(1) }}° · max {{ analysis.slope!.maxDeg.toFixed(0) }}°</span>
           </div>
+          <div class="metric-row">
+            <span>Downstream flow</span>
+            <span class="v">{{ analysis.downstream ? `${analysis.downstream.distanceKm.toFixed(1)} km to outlet` : "—" }}</span>
+          </div>
         </template>
       </template>
 

@@ -28,3 +28,5 @@ pnpm-debug.log*
 # coding agent
 .agents
 skills-lock.json
+public/data/terrain/demnas.tif
+__pycache__/

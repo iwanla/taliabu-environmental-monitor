@@ -1,4 +1,5 @@
 import { area, intersect, pointToLineDistance, booleanPointInPolygon, centroid, featureCollection, point, distance } from "@turf/turf";
+import { traceDownstream } from "./terrain";
 
 export const AOI_MAX_HA = 10_000;
 
@@ -12,6 +13,7 @@ export interface AoiAnalysis {
   watershed?: string;
   elevation?: { minM: number; maxM: number; meanM: number };
   slope?: { meanDeg: number; maxDeg: number };
+  downstream?: { distanceKm: number; outlet: [number, number] };
 }
 
 const cache = new Map<string, Promise<GeoJSON.FeatureCollection>>();
@@ -93,6 +95,7 @@ export async function analyzeAoi(polygon: GeoJSON.Polygon): Promise<AoiAnalysis>
   );
 
   const terrain = await sampleTerrain(polygon);
+  const downstream = await traceDownstream(center.geometry.coordinates[0], center.geometry.coordinates[1]);
 
   return {
     areaHa,
@@ -103,6 +106,7 @@ export async function analyzeAoi(polygon: GeoJSON.Polygon): Promise<AoiAnalysis>
     coastDistanceM,
     watershed: watershedFeat ? String(watershedFeat.properties?.name ?? "Watershed") : undefined,
     ...terrain,
+    downstream: downstream ? { distanceKm: downstream.distanceKm, outlet: downstream.outlet } : undefined,
   };
 }
 

@@ -812,7 +812,9 @@ Avoid dynamic DEM processing in Worker.
 - Layer `Elevation` + `Slope` (category terrain): static raster via MapLibre `image` source (`source.staticUrl` + `bbox` di `RasterLayerDefinition`), scene-independent, radio-group dengan raster lain; legend ramp.
 - AOI inspector metrics: elevation min/max/mean + slope mean/max via client-side sampling PNG statis (OffscreenCanvas, pola sama dengan changeDetection). Browser-verified: AOI 584 ha → elev 66–615 m, slope mean 17.1°/max 41°.
 - Dataset metadata `terrain-dem` di datasets.json.
-- Pending (deferred): D8 flow direction/accumulation, derived streams + watershed delineation, downstream path — official `watersheds.geojson` (BIG) sudah memenuhi kriteria "selected location dipetakan ke watershed" via point-in-polygon (Phase 8).
+- Fase B (D8 hydrology) — selesai: `scripts/terrain/hydro.py` (priority-flood epsilon fill, D8 steepest descent, flow accumulation; 3 bug yang ditemukan: salah seed ocean-adjacency, konvensi tanda steepest descent terbalik, slice mapping tetangga terbalik — semua fixed dan verified). Output: `fdr.png` (R=D8 code, G=log accumulation, alpha=land) + `drainage.geojson` (90 stream, threshold ~9 km²). Validasi: 87/90 stream midpoint <650 m dari sungai BIG.
+- Layer `Derived drainage` (hydrology, dashed teal) + metrik `Downstream flow` di AOI inspector (trace D8 dari centroid AOI via `terrain.ts`, garis dashed amber di peta). Browser-verified: AOI 1.008 ha → downstream 9,2 km to outlet; drainage toggle OK; console bersih.
+- Pending (deferred): watershed delineation per mouth (derived-watersheds.geojson) — official BIG watersheds sudah memenuhi kriteria; tambah kalau perlu catchment konsisten-DEM.
 
 # Phase 12 — Coastal and Sediment Monitoring
 

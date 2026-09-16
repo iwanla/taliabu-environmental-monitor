@@ -5,6 +5,8 @@ import type { GeoJSONSource, MapMouseEvent, RasterTileSource } from "maplibre-gl
 import "maplibre-gl/dist/maplibre-gl.css";
 import MapLegend from "./MapLegend.vue";
 import { useLayers } from "../composables/useLayers";
+import { traceDownstream } from "../composables/terrain";
+import { centroid } from "@turf/turf";
 import type { BasemapMode, MapLayerDefinition } from "@/shared/types/layers";
 
 export interface SatelliteTile {
@@ -557,6 +559,31 @@ watch(() => props.drawMode, (mode) => {
 });
 
 watch(() => props.aoi, renderAoi);
+
+watch(
+  () => props.aoi,
+  async (aoi) => {
+    if (!map) return;
+    const sourceId = "downstream-src";
+    const layerId = "downstream-line";
+    if (map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map.getSource(sourceId)) map.removeSource(sourceId);
+    if (!aoi) return;
+    const c = centroid(aoi);
+    const path = await traceDownstream(c.geometry.coordinates[0], c.geometry.coordinates[1]);
+    if (!path || !map) return;
+    map.addSource(sourceId, {
+      type: "geojson",
+      data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: path.coordinates } },
+    });
+    map.addLayer({
+      id: layerId,
+      type: "line",
+      source: sourceId,
+      paint: { "line-color": "#B4652A", "line-width": 2.5, "line-dasharray": [3, 2] },
+    });
+  },
+);
 
 onMounted(() => document.addEventListener("keydown", onAoiKeydown));
 
