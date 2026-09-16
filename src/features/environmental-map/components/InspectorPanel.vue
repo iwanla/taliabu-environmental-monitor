@@ -4,6 +4,8 @@ import { useDatasetMetadata } from "../composables/useDatasetMetadata";
 import { analyzeAoi, type AoiAnalysis } from "../composables/useAoiAnalysis";
 import { CHANGE_RULES, type ChangeResult, type ChangeType } from "../composables/changeDetection";
 import { ALERT_LABELS, alertLabel, DEFAULT_THRESHOLDS, evaluateAlerts, type AlertThresholds, type AlertEvidence, type EnvAlert } from "../composables/alerts";
+import type { LandCover } from "../composables/analytics";
+import { DATA_ATTRIBUTION, SATELLITE_SOURCE, downloadBlob, exportFileStamp, toCsv, type CsvRow } from "../composables/export";
 
 const props = defineProps<{
   feature: GeoJSON.Feature | null;
@@ -14,9 +16,13 @@ const props = defineProps<{
   change?: ChangeResult | null;
   changeLoading?: boolean;
   changeError?: string | null;
+  analytics?: LandCover | null;
+  activeLayers?: string[];
+  shareUrl?: string;
+  mapActive?: boolean;
 }>();
 
-const emit = defineEmits<{ clearAoi: []; runChange: [payload: { type: ChangeType; dateA: string; dateB: string }]; focusAlert: [alert: SavedAlert]; unfocusAlert: [] }>();
+const emit = defineEmits<{ clearAoi: []; runChange: [payload: { type: ChangeType; dateA: string; dateB: string }]; focusAlert: [alert: SavedAlert]; unfocusAlert: []; exportPng: [] }>();
 
 const changeType = ref<ChangeType>("vegetation-loss");
 const dateA = ref("");
@@ -59,7 +65,7 @@ watch(() => props.aoi, async (polygon) => {
     analysisFailed.value = true;
   }
   analyzing.value = false;
-});
+}, { immediate: true });
 
 const thresholds = ref<AlertThresholds>({ ...DEFAULT_THRESHOLDS });
 const alerts = computed<EnvAlert[]>(() =>
@@ -176,6 +182,103 @@ function formatM(m?: number): string {
 function formatHa(ha?: number): string {
   if (ha == null) return "—";
   return ha >= 100 ? `${Math.round(ha).toLocaleString()} ha` : `${ha.toFixed(1)} ha`;
+}
+
+const exportContext = () => ({
+  observationDate: props.sceneDate ?? null,
+  comparisonDate: props.change ? { from: props.change.dateA, to: props.change.dateB } : null,
+  source: SATELLITE_SOURCE,
+  activeLayers: props.activeLayers ?? [],
+  generatedAt: new Date().toISOString(),
+  attribution: DATA_ATTRIBUTION,
+  disclaimer: "Remote-sensing proxy, not a field measurement or legal conclusion.",
+});
+
+function doExportCsv() {
+  const rows: CsvRow[] = [];
+  const c = analysis.value;
+  if (c) {
+    rows.push(["aoi_area", +c.areaHa.toFixed(2), "ha"]);
+    rows.push(["within_permit", +c.permitPct.toFixed(1), "%", c.permits.join(", ")]);
+    if (c.nearestRiver) rows.push(["nearest_river", Math.round(c.nearestRiver.distanceM), "m", c.nearestRiver.name]);
+    if (c.nearestSettlement) rows.push(["nearest_settlement", Math.round(c.nearestSettlement.distanceM), "m", c.nearestSettlement.name]);
+    if (c.coastDistanceM != null) rows.push(["coast_distance", Math.round(c.coastDistanceM), "m"]);
+    if (c.watershed) rows.push(["watershed", c.watershed, "name"]);
+    if (c.elevation) {
+      rows.push(["elevation_min", Math.round(c.elevation.minM), "m"]);
+      rows.push(["elevation_mean", Math.round(c.elevation.meanM), "m"]);
+      rows.push(["elevation_max", Math.round(c.elevation.maxM), "m"]);
+    }
+    if (c.slope) {
+      rows.push(["slope_mean", +c.slope.meanDeg.toFixed(1), "deg"]);
+      rows.push(["slope_max", Math.round(c.slope.maxDeg), "deg"]);
+    }
+    if (c.downstream) rows.push(["downstream_to_outlet", +c.downstream.distanceKm.toFixed(1), "km"]);
+  }
+  if (props.change) {
+    rows.push(["changed_area", +props.change.changedHa.toFixed(2), "ha", `${props.change.dateA} → ${props.change.dateB}`]);
+    rows.push(["cloud_free", Math.round(props.change.coverage * 100), "%", CHANGE_RULES[props.change.type].label]);
+  }
+  const a = props.analytics;
+  if (a) {
+    rows.push(["landcover_vegetation", +a.vegetationHa.toFixed(1), "ha"]);
+    rows.push(["landcover_bare", +a.bareHa.toFixed(1), "ha"]);
+    rows.push(["landcover_water", +a.waterHa.toFixed(1), "ha"]);
+    rows.push(["scope_area", +a.totalHa.toFixed(1), "ha", a.scope]);
+    rows.push(["cloud_free", Math.round(a.coverage * 100), "%"]);
+    rows.push(["resolution", a.resolutionM, "m/px"]);
+  }
+  downloadBlob(`taliabu-metrics-${exportFileStamp()}.csv`, new Blob([toCsv(rows)], { type: "text/csv" }));
+}
+
+function doExportGeojson() {
+  if (!props.aoi) return;
+  const c = analysis.value;
+  const feature: GeoJSON.Feature = {
+    type: "Feature",
+    properties: {
+      ...exportContext(),
+      areaHa: c ? +c.areaHa.toFixed(2) : null,
+      permits: c?.permits ?? [],
+      permitPct: c ? +c.permitPct.toFixed(1) : null,
+      nearestRiver: c?.nearestRiver ?? null,
+      coastDistanceM: c?.coastDistanceM ?? null,
+      watershed: c?.watershed ?? null,
+      change: props.change
+        ? { type: props.change.type, method: CHANGE_RULES[props.change.type].label, changedHa: +props.change.changedHa.toFixed(2), coverage: +props.change.coverage.toFixed(2) }
+        : null,
+    },
+    geometry: props.aoi,
+  };
+  downloadBlob(`taliabu-aoi-${exportFileStamp()}.geojson`, new Blob([JSON.stringify(feature, null, 2)], { type: "application/geo+json" }));
+}
+
+function doExportJson() {
+  const snapshot = {
+    ...exportContext(),
+    aoi: props.aoi ? { coordinates: props.aoi.coordinates, areaHa: analysis.value ? +analysis.value.areaHa.toFixed(2) : null } : null,
+    change: props.change
+      ? { type: props.change.type, method: CHANGE_RULES[props.change.type].label, changedHa: +props.change.changedHa.toFixed(2), coverage: +props.change.coverage.toFixed(2), bbox: props.change.bbox }
+      : null,
+    alerts: alerts.value,
+    landCover: props.analytics ?? null,
+  };
+  downloadBlob(`taliabu-monitor-${exportFileStamp()}.json`, new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" }));
+}
+
+const copied = ref(false);
+let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function copyShare() {
+  if (!props.shareUrl) return;
+  try {
+    await navigator.clipboard.writeText(props.shareUrl);
+    copied.value = true;
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => (copied.value = false), 2000);
+  } catch {
+    // clipboard permission denied — nothing to show
+  }
 }
 </script>
 
@@ -370,6 +473,18 @@ function formatHa(ha?: number): string {
         </template>
       </template>
       <div v-else class="metric-row"><span>Entries</span><span class="v">0</span></div>
+    </div>
+
+    <div class="insp-block">
+      <h5>Export</h5>
+      <div class="sub">Snapshot and evidence</div>
+      <div class="export-grid">
+        <button class="export-btn" :disabled="!analysis && !change && !analytics" @click="doExportCsv">CSV</button>
+        <button class="export-btn" :disabled="!aoi" @click="doExportGeojson">GeoJSON</button>
+        <button class="export-btn" @click="doExportJson">JSON</button>
+        <button class="export-btn" :disabled="!mapActive" title="Capture the current map view" @click="emit('exportPng')">PNG</button>
+        <button class="export-btn wide" @click="copyShare">{{ copied ? "Link copied" : "Copy share link" }}</button>
+      </div>
     </div>
   </aside>
 </template>
@@ -622,5 +737,37 @@ function formatHa(ha?: number): string {
   margin: 8px 0 0;
   font-size: 11px;
   color: var(--ink-faint);
+}
+
+.export-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.export-btn {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--paper-sunk);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.export-btn.wide {
+  grid-column: 1 / -1;
+}
+
+.export-btn:hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.export-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 </style>

@@ -1058,6 +1058,17 @@ Export action tersedia dari dashboard.
 - GeoJSON memiliki context yang jelas;
 - evidence metadata menyimpan source dan method.
 
+## Status
+
+**Complete** — 2026-09-16
+
+- `composables/export.ts`: `exportMapPng` (capture setelah repaint via `once("render")` + `triggerRepaint`, salin canvas + attribution bar 26 CSS px yang di-scale DPR, teks "Taliabu Environmental Monitor · Sentinel-2 L2A · <date> · © OpenFreeMap · © OpenStreetMap contributors"), `downloadBlob`, `toCsv` (kolom unit + escaping CSV), `encodeAoi`/`decodeAoi` (ring dibulatkan 5 dp, validasi struktur — menolak ring tanpa nesting), `buildShareUrl` (param `aoi` + `cam`), konstanta `SATELLITE_SOURCE` + `DATA_ATTRIBUTION`.
+- Blok "Export" di InspectorPanel: CSV (statistik AOI + change detection + land cover, unit ha/%/m/deg/km/m-px), GeoJSON (feature AOI dengan properties context: dates, source, method, changedHa, coverage, permits, jarak river/coast, watershed, attribution, disclaimer), JSON snapshot (observation/comparison date, source, active layers, AOI, change evidence, alerts evidence lengkap, land cover, generatedAt), PNG, dan "Copy share link" (feedback "Link copied" 2 detik).
+- Share URL: `aoi` (JSON ring 5 dp) + `cam` (lon,lat,zoom); restore berjalan sebelum MapView mount sehingga `initial-view` memakainya; AOI divalidasi terhadap limit 10.000 ha.
+- Perbaikan yang ditemukan saat verifikasi: (1) `decodeAoi` menerima ring tanpa nesting → crash di `shareUrl` computed; kini ada validasi struktur; (2) `watch(props.aoi)` tanpa `immediate` — AOI dari URL diset sebelum panel mount sehingga analisis tidak pernah jalan; (3) deadlock PNG: `triggerRepaint` dipanggil setelah `await once("render")` padahal peta idle tidak pernah render sendiri.
+- Verified di browser end-to-end: buka share URL → kamera zoom 11.00 ter-restore, outline AOI tampil, analisis jalan otomatis (1.483 ha · 100.1% dalam IUP ZOUK/WIRA BAHANA PERKASA MAKMUR); change detection 2026-08-25→09-04 (0.0 ha, 5% cloud-free → "Too cloudy", guard positif); keempat download terekam: CSV 21 baris dengan kolom unit + note ter-escape, GeoJSON dengan context lengkap, JSON snapshot 11 field, PNG 1304×1092 dengan bar attribution + glyph teks terverifikasi via pixel sample; label "Link copied"; disabled states benar (GeoJSON tanpa AOI, CSV tanpa data, PNG saat compare mode karena MapView unmount). `vue-tsc` + `vite build` bersih. Screenshot `phase16-export.png`.
+- Catatan: clipboard di headless hang saat `readText()` (permission) — copy diverifikasi lewat feedback label; URL yang dicopy identik dengan `location.href` yang menjadi input restore.
+
 # Phase 17 — Scheduled Scene Discovery
 
 ## Goal

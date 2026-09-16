@@ -13,8 +13,9 @@ import { runChangeDetection, type ChangeResult, type ChangeType } from "./compos
 import { computeLandCover, type AnalyticsScope, type LandCover } from "./composables/analytics";
 import type { BasemapMode } from "@/shared/types/layers";
 import { useLayers } from "./composables/useLayers";
+import { buildShareUrl, decodeAoi, downloadBlob, exportFileStamp, exportMapPng, exportStamp } from "./composables/export";
 
-const { layers, setLayer } = useLayers();
+const { layers, setLayer, isVisible } = useLayers();
 
 const selectedFeature = ref<GeoJSON.Feature | null>(null);
 const selectedLayerId = ref<string | null>(null);
@@ -46,6 +47,31 @@ const aoiError = ref<string | null>(null);
 const focusBounds = ref<[number, number, number, number] | null>(null);
 const focusAlertAoi = ref<GeoJSON.Polygon | null>(null);
 const preFocusCamera = ref<[number, number, number, number] | null>(null);
+
+// Share-link restore (aoi + cam params) must run before MapView mounts so
+// initial-view picks it up.
+{
+  const params = new URLSearchParams(window.location.search);
+  const aoiRaw = params.get("aoi");
+  if (aoiRaw) {
+    const polygon = decodeAoi(aoiRaw);
+    if (polygon && area(polygon) / 10_000 <= AOI_MAX_HA) aoi.value = polygon;
+  }
+  const cam = params.get("cam")?.split(",").map(Number);
+  if (cam?.length === 3 && cam.every((n) => Number.isFinite(n))) {
+    camera.value = { center: [cam[0], cam[1]], zoom: cam[2], bearing: 0, pitch: 0 };
+  }
+}
+
+const shareUrl = computed(() => buildShareUrl(window.location.href, aoi.value, camera.value));
+const activeLayerNames = computed(() => layers.value.filter((l) => isVisible(l.id)).map((l) => l.name));
+
+async function handleExportPng() {
+  const map = (window as unknown as { __map?: Parameters<typeof exportMapPng>[0] }).__map;
+  if (!map) return;
+  const blob = await exportMapPng(map, exportStamp(selectedScene.value?.date.slice(0, 10) ?? null));
+  downloadBlob(`taliabu-monitor-${exportFileStamp()}.png`, blob);
+}
 
 function handleFocusAlert(alert: { aoi: GeoJSON.Polygon | null; evidence: { bbox: [number, number, number, number] } }) {
   if (!focusAlertAoi.value) preFocusCamera.value = camera.value?.bounds ?? null;
@@ -376,10 +402,15 @@ onMounted(() => {
       :change="change"
       :change-loading="changeLoading"
       :change-error="changeError"
+      :analytics="analyticsResult"
+      :active-layers="activeLayerNames"
+      :share-url="shareUrl"
+      :map-active="!compareMode"
       @clear-aoi="clearAoi"
       @run-change="handleRunChange"
       @focus-alert="handleFocusAlert"
       @unfocus-alert="handleUnfocusAlert"
+      @export-png="handleExportPng"
     />
     <Timeline
        v-if="basemapMode === 'satellite'"

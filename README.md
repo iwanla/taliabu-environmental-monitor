@@ -132,8 +132,8 @@ Rencana lengkap dan status tiap fase ada di [docs/PLAN.md](docs/PLAN.md).
 | 13 | Panel analitik tutupan lahan | Selesai |
 | 14 | Persistensi D1 | Selesai |
 | 15 | Alert lingkungan | Selesai |
-| 16 | Export dan evidence | Berikutnya |
-| 17-19 | Scheduled discovery, hardening, production readiness | Direncanakan |
+| 16 | Export dan evidence (PNG, CSV, GeoJSON, JSON, share URL) | Selesai |
+| 17-19 | Scheduled discovery, hardening, production readiness | Berikutnya |
 
 ## Deployment
 
