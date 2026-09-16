@@ -691,6 +691,18 @@ Map dapat menampilkan derived change polygons/statistics.
 - quality/confidence tersedia;
 - result tidak membuat legal conclusion.
 
+## Status
+
+**Completed** — 2026-09-16
+
+- 3 change types: vegetation loss (NDVI drop >= 0.15), new bare land (NDVI crosses below 0.2), water change (MNDWI crosses 0.1 both directions)
+- `ndvi-raw` / `mndwi-raw` evalscripts encode metric into R channel (value+1)/2, alpha = dataMask
+- Client-side per-pixel diff via OffscreenCanvas (`changeDetection.ts`), 2x `/api/render` per analysis (AOI bbox, 512px, 4-day lookback window per date)
+- Result: colored change overlay (maplibre image source) + stats in InspectorPanel
+- Acceptance criteria met: source (Sentinel-2 L2A), method (threshold label), window (date A → B), confidence (% cloud-free valid pixels), proxy disclaimer
+- Self-check: `node --experimental-strip-types scripts/check-change-detection.ts` (pure `diffPixels` rules)
+- Browser-verified: draw AOI → run analysis → 753 ha change in 2026-08-15 → 2026-09-14 window, overlay rendered; vue-tsc + build pass
+
 # Phase 10 — Mining Impact Mode
 
 ## Goal

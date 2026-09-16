@@ -37,6 +37,7 @@ export interface MapViewCamera {
 const props = defineProps<{
   activeScenes?: SatelliteAcquisition[];
   basemapMode: BasemapMode;
+  changeOverlay?: { url: string; bbox: [number, number, number, number] } | null;
   initialView?: MapViewCamera;
   drawMode?: boolean;
   aoi?: GeoJSON.Polygon | null;
@@ -452,6 +453,23 @@ function updateBasemap(mode: BasemapMode) {
   }
 }
 
+function updateChangeOverlay(overlay: { url: string; bbox: [number, number, number, number] } | null | undefined) {
+  if (!map) return;
+  const sourceId = "change-src";
+  const layerId = "change-layer";
+  if (map.getLayer(layerId)) map.removeLayer(layerId);
+  const existing = map.getSource(sourceId);
+  if (existing) map.removeSource(sourceId);
+  if (!overlay) return;
+  const [w, s, e, n] = overlay.bbox;
+  map.addSource(sourceId, {
+    type: "image",
+    url: overlay.url,
+    coordinates: [[w, n], [e, n], [e, s], [w, s]],
+  });
+  map.addLayer({ id: layerId, type: "raster", source: sourceId, paint: { "raster-opacity": 0.75 } });
+}
+
 onMounted(async () => {
   if (!mapContainer.value) return;
 
@@ -550,11 +568,13 @@ onMounted(async () => {
 
     if (props.activeScenes?.length) updateSatelliteLayers(props.activeScenes);
     updateBasemap(props.basemapMode);
+    updateChangeOverlay(props.changeOverlay);
   });
 });
 
 watch(() => props.activeScenes, (scenes) => updateSatelliteLayers(scenes ?? []), { deep: true });
 watch(() => props.basemapMode, updateBasemap);
+watch(() => props.changeOverlay, updateChangeOverlay);
 
 watch(() => props.drawMode, (mode) => {
   if (!map) return;

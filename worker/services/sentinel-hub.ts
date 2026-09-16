@@ -87,6 +87,32 @@ function setup() {
 function evaluatePixel(s) {
   return [2.5 * s.B12, 2.5 * s.B08A, 2.5 * s.B04, s.dataMask];
 }`,
+  // Raw metric values encoded as R = (value + 1) / 2, alpha = dataMask.
+  // Client-side change detection decodes these back to NDVI/MNDWI and thresholds the delta.
+  "ndvi-raw": `//VERSION=3
+function setup() {
+  return {
+    input: ["B08", "B04", "dataMask"],
+    output: { bands: 4 }
+  };
+}
+function evaluatePixel(s) {
+  var ndvi = (s.B08 - s.B04) / (s.B08 + s.B04 + 1e-10);
+  return [(ndvi + 1) / 2, 0, 0, s.dataMask];
+}
+`,
+  "mndwi-raw": `//VERSION=3
+function setup() {
+  return {
+    input: ["B03", "B11", "dataMask"],
+    output: { bands: 4 }
+  };
+}
+function evaluatePixel(s) {
+  var mndwi = (s.B03 - s.B11) / (s.B03 + s.B11 + 1e-10);
+  return [(mndwi + 1) / 2, 0, 0, s.dataMask];
+}
+`,
   sar: `//VERSION=3
 function setup() {
   return {

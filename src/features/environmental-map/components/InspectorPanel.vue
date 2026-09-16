@@ -2,15 +2,39 @@
 import { onMounted, ref, watch } from "vue";
 import { useDatasetMetadata } from "../composables/useDatasetMetadata";
 import { analyzeAoi, type AoiAnalysis } from "../composables/useAoiAnalysis";
+import { CHANGE_RULES, type ChangeResult, type ChangeType } from "../composables/changeDetection";
 
 const props = defineProps<{
   feature: GeoJSON.Feature | null;
   layerId: string | null;
   aoi?: GeoJSON.Polygon | null;
   aoiError?: string | null;
+  sceneDate?: string | null;
+  change?: ChangeResult | null;
+  changeLoading?: boolean;
+  changeError?: string | null;
 }>();
 
-const emit = defineEmits<{ clearAoi: [] }>();
+const emit = defineEmits<{ clearAoi: []; runChange: [payload: { type: ChangeType; dateA: string; dateB: string }] }>();
+
+const changeType = ref<ChangeType>("vegetation-loss");
+const dateA = ref("");
+const dateB = ref("");
+
+watch(
+  () => props.sceneDate,
+  (d) => {
+    if (!d || dateB.value) return;
+    dateB.value = d.slice(0, 10);
+    dateA.value = new Date(new Date(d).getTime() - 30 * 86400000).toISOString().slice(0, 10);
+  },
+  { immediate: true },
+);
+
+function runChange() {
+  if (!dateA.value || !dateB.value) return;
+  emit("runChange", { type: changeType.value, dateA: dateA.value, dateB: dateB.value });
+}
 
 const { load, getByLayerId } = useDatasetMetadata();
 
@@ -136,6 +160,32 @@ function formatHa(ha?: number): string {
           <span class="v">{{ analysis.watershed ?? "—" }}</span>
         </div>
       </template>
+
+      <div class="meta-heading">Change detection</div>
+      <select v-model="changeType" class="change-input" aria-label="Change type">
+        <option value="vegetation-loss">Vegetation loss</option>
+        <option value="new-bare-land">New bare land</option>
+        <option value="water-change">Water change</option>
+      </select>
+      <div class="change-dates">
+        <label>From<input v-model="dateA" type="date" class="change-input" /></label>
+        <label>To<input v-model="dateB" type="date" class="change-input" /></label>
+      </div>
+      <button class="aoi-clear" :disabled="changeLoading || !dateA || !dateB" @click="runChange">
+        {{ changeLoading ? "Running…" : "Run analysis" }}
+      </button>
+      <template v-if="changeError">
+        <div class="metric-row"><span>Error</span><span class="v">{{ changeError }}</span></div>
+      </template>
+      <template v-else-if="change">
+        <div class="metric-row"><span>Changed area</span><span class="v">{{ formatHa(change.changedHa) }}</span></div>
+        <div class="metric-row"><span>Window</span><span class="v">{{ change.dateA }} → {{ change.dateB }}</span></div>
+        <div class="metric-row"><span>Confidence</span><span class="v">{{ Math.round(change.coverage * 100) }}% cloud-free</span></div>
+        <div class="metric-row"><span>Method</span><span class="v">{{ CHANGE_RULES[change.type].label }}</span></div>
+        <div class="metric-row"><span>Source</span><span class="v">Sentinel-2 L2A</span></div>
+        <p class="disclaimer">Remote-sensing proxy, not a field measurement or legal conclusion.</p>
+      </template>
+
       <button class="aoi-clear" @click="emit('clearAoi')">Clear AOI</button>
     </div>
 
@@ -249,5 +299,35 @@ function formatHa(ha?: number): string {
 .aoi-clear:hover {
   border-color: #c0392b;
   color: #c0392b;
+}
+
+.change-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 5px 6px;
+  margin-top: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper-sunk);
+  color: var(--ink);
+}
+
+.change-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.change-dates label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.disclaimer {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--ink-faint);
 }
 </style>

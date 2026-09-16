@@ -9,6 +9,7 @@ import MetricsRow from "./components/MetricsRow.vue";
 import CompareView from "./components/CompareView.vue";
 import { area } from "@turf/turf";
 import { AOI_MAX_HA } from "./composables/useAoiAnalysis";
+import { runChangeDetection, type ChangeResult, type ChangeType } from "./composables/changeDetection";
 import type { BasemapMode } from "@/shared/types/layers";
 
 const selectedFeature = ref<GeoJSON.Feature | null>(null);
@@ -26,6 +27,28 @@ const drawMode = ref(false);
 const aoi = ref<GeoJSON.Polygon | null>(null);
 const aoiError = ref<string | null>(null);
 
+const change = ref<ChangeResult | null>(null);
+const changeLoading = ref(false);
+const changeError = ref<string | null>(null);
+
+function clearChange() {
+  if (change.value) URL.revokeObjectURL(change.value.url);
+  change.value = null;
+  changeError.value = null;
+}
+
+async function handleRunChange(payload: { type: ChangeType; dateA: string; dateB: string }) {
+  if (!aoi.value || changeLoading.value) return;
+  changeLoading.value = true;
+  clearChange();
+  try {
+    change.value = await runChangeDetection(payload.type, payload.dateA, payload.dateB, aoi.value);
+  } catch (err) {
+    changeError.value = err instanceof Error ? err.message : "Analysis failed";
+  }
+  changeLoading.value = false;
+}
+
 function toggleDrawAoi() {
   drawMode.value = !drawMode.value;
   if (drawMode.value) aoiError.value = null;
@@ -33,6 +56,7 @@ function toggleDrawAoi() {
 
 function handleAoiDrawn(polygon: GeoJSON.Polygon) {
   drawMode.value = false;
+  clearChange();
   const ha = area(polygon) / 10_000;
   if (ha > AOI_MAX_HA) {
     aoi.value = null;
@@ -46,6 +70,7 @@ function handleAoiDrawn(polygon: GeoJSON.Polygon) {
 function clearAoi() {
   aoi.value = null;
   aoiError.value = null;
+  clearChange();
 }
 
 const activeScene = computed(() => {
@@ -228,6 +253,7 @@ onMounted(() => {
         v-if="!compareMode"
         :active-scenes="activeScene"
         :basemap-mode="basemapMode"
+        :change-overlay="change ? { url: change.url, bbox: change.bbox } : null"
         :initial-view="camera ?? undefined"
         :draw-mode="drawMode"
         :aoi="aoi"
@@ -249,7 +275,12 @@ onMounted(() => {
       :layer-id="selectedLayerId"
       :aoi="aoi"
       :aoi-error="aoiError"
+      :scene-date="selectedScene?.date ?? null"
+      :change="change"
+      :change-loading="changeLoading"
+      :change-error="changeError"
       @clear-aoi="clearAoi"
+      @run-change="handleRunChange"
     />
     <Timeline
        v-if="basemapMode === 'satellite'"
