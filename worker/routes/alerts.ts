@@ -14,20 +14,29 @@ interface AlertInput {
 
 const alerts = new Hono<{ Bindings: Env }>();
 
+// ponytail: tolerance fingerprint — 0.1 ha / 4dp bbox / 5dp AOI; tighten if real duplicates slip through.
+// Excludes generatedAt so re-running the same analysis cannot re-log the same alert.
+function fingerprint(a: AlertInput): string {
+  const e = a.evidence as { dateA?: string; dateB?: string; changedHa?: number; bbox?: number[] };
+  const ring = a.aoi?.coordinates[0]?.map((p) => p.map((n) => n.toFixed(5)).join(",")).join(";") ?? "";
+  return [a.kind, e.dateA ?? "", e.dateB ?? "", (e.changedHa ?? 0).toFixed(1), (e.bbox ?? []).map((n) => n.toFixed(4)).join(","), ring].join("|");
+}
+
 alerts.post("/alerts", async (c) => {
   const body = await c.req.json<{ alerts?: AlertInput[] }>();
   if (!Array.isArray(body.alerts) || !body.alerts.length) {
     return c.json({ error: "NO_ALERTS" }, 400);
   }
   const stmt = c.env.DB.prepare(
-    `INSERT INTO environmental_alerts (kind, severity, aoi, scene_id, evidence) VALUES (?, ?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO environmental_alerts (kind, severity, aoi, scene_id, evidence, fingerprint) VALUES (?, ?, ?, ?, ?, ?)`,
   );
-  await c.env.DB.batch(
+  const results = await c.env.DB.batch(
     body.alerts.map((a) =>
-      stmt.bind(a.kind, a.severity ?? "medium", a.aoi ? JSON.stringify(a.aoi) : null, a.sceneId ?? null, JSON.stringify(a.evidence)),
+      stmt.bind(a.kind, a.severity ?? "medium", a.aoi ? JSON.stringify(a.aoi) : null, a.sceneId ?? null, JSON.stringify(a.evidence), fingerprint(a)),
     ),
   );
-  return c.json({ saved: body.alerts.length });
+  const saved = results.reduce((n, r) => n + (r.meta.changes ?? 0), 0);
+  return c.json({ saved, duplicates: body.alerts.length - saved });
 });
 
 alerts.get("/alerts", async (c) => {

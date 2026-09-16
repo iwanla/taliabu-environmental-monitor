@@ -76,10 +76,10 @@ const alerts = computed<EnvAlert[]>(() =>
 const alertsBlocked = computed(() => !!props.change && props.change.coverage < 0.3);
 
 const saving = ref(false);
-const savedCount = ref(0);
+const savedCount = ref<number | null>(null);
 const saveError = ref<string | null>(null);
 watch(alerts, () => {
-  savedCount.value = 0;
+  savedCount.value = null;
   saveError.value = null;
 });
 
@@ -146,7 +146,7 @@ async function saveAlerts() {
       body: JSON.stringify({ alerts: alerts.value }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    savedCount.value = alerts.value.length;
+    savedCount.value = ((await res.json()) as { saved: number }).saved;
     await loadAlerts();
   } catch (err) {
     saveError.value = err instanceof Error ? err.message : "Save failed";
@@ -428,7 +428,7 @@ async function copyShare() {
             </div>
           </template>
           <button class="aoi-clear" :disabled="saving" @click="saveAlerts">
-            {{ saving ? "Saving…" : savedCount ? `Saved to log (${savedCount})` : "Save to alert log" }}
+            {{ saving ? "Saving…" : savedCount === null ? "Save to alert log" : savedCount ? `Saved to log (${savedCount})` : "Already in log" }}
           </button>
           <div v-if="saveError" class="metric-row"><span>Error</span><span class="v">{{ saveError }}</span></div>
         </template>
