@@ -13,32 +13,39 @@ function setup() {
 function evaluatePixel(s) {
   return [2.5 * s.B04, 2.5 * s.B03, 2.5 * s.B02, s.dataMask];
 }`,
-  // Copernicus Browser / EO Browser default NDVI ramp (custom-scripts repo)
+  // Copernicus Browser NDVI default output - stepped if/else, verbatim from their custom script
   ndvi: `//VERSION=3
 function setup() {
   return {
-    input: ["B08", "B04", "dataMask"],
+    input: ["B04", "B08", "dataMask"],
     output: { bands: 4 }
   };
 }
-const ramp = [
-  [-0.5, [0.098, 0.078, 0.078]],
-  [0.0, [0.749, 0.110, 0.047]],
-  [0.1, [0.976, 0.424, 0.157]],
-  [0.2, [0.953, 0.651, 0.055]],
-  [0.3, [0.843, 0.757, 0.055]],
-  [0.4, [0.659, 0.773, 0.271]],
-  [0.5, [0.443, 0.702, 0.267]],
-  [0.6, [0.341, 0.655, 0.286]],
-  [0.7, [0.247, 0.620, 0.275]],
-  [0.8, [0.173, 0.561, 0.267]],
-  [0.9, [0.078, 0.478, 0.239]],
-  [1.0, [0.055, 0.361, 0.188]]
-];
-function evaluatePixel(s) {
-  var ndvi = (s.B08 - s.B04) / (s.B08 + s.B04 + 1e-10);
-  var c = colorBlend(ndvi, ramp.map(x => x[0]), ramp.map(x => x[1]));
-  return [c[0], c[1], c[2], s.dataMask];
+function evaluatePixel(samples) {
+  let val = index(samples.B08, samples.B04);
+  let imgVals = null;
+  if (val<-0.5) imgVals = [0.05,0.05,0.05,samples.dataMask];
+  else if (val<-0.2) imgVals = [0.75,0.75,0.75,samples.dataMask];
+  else if (val<-0.1) imgVals = [0.86,0.86,0.86,samples.dataMask];
+  else if (val<0) imgVals = [0.92,0.92,0.92,samples.dataMask];
+  else if (val<0.025) imgVals = [1,0.98,0.8,samples.dataMask];
+  else if (val<0.05) imgVals = [0.93,0.91,0.71,samples.dataMask];
+  else if (val<0.075) imgVals = [0.87,0.85,0.61,samples.dataMask];
+  else if (val<0.1) imgVals = [0.8,0.78,0.51,samples.dataMask];
+  else if (val<0.125) imgVals = [0.74,0.72,0.42,samples.dataMask];
+  else if (val<0.15) imgVals = [0.69,0.76,0.38,samples.dataMask];
+  else if (val<0.175) imgVals = [0.64,0.8,0.35,samples.dataMask];
+  else if (val<0.2) imgVals = [0.57,0.75,0.32,samples.dataMask];
+  else if (val<0.25) imgVals = [0.5,0.7,0.28,samples.dataMask];
+  else if (val<0.3) imgVals = [0.44,0.64,0.25,samples.dataMask];
+  else if (val<0.35) imgVals = [0.38,0.59,0.21,samples.dataMask];
+  else if (val<0.4) imgVals = [0.31,0.54,0.18,samples.dataMask];
+  else if (val<0.45) imgVals = [0.25,0.49,0.14,samples.dataMask];
+  else if (val<0.5) imgVals = [0.19,0.43,0.11,samples.dataMask];
+  else if (val<0.55) imgVals = [0.13,0.38,0.07,samples.dataMask];
+  else if (val<0.6) imgVals = [0.06,0.33,0.04,samples.dataMask];
+  else imgVals = [0,0.27,0,samples.dataMask];
+  return imgVals;
 }`,
   ndwi: `//VERSION=3
 function setup() {
