@@ -18,10 +18,6 @@ defineProps<{
       </template>
       <b v-else class="mono">Loading</b>
     </div>
-    <div class="actions">
-      <button class="btn btn-ghost-dark">Compare</button>
-      <button class="btn btn-primary">Export</button>
-    </div>
   </header>
 </template>
 
@@ -72,35 +68,5 @@ defineProps<{
 
 .sep {
   color: #4B584F;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.btn {
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 7px 13px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  line-height: 1;
-}
-
-.btn-primary {
-  background: var(--cat-environment);
-  color: #fff;
-}
-
-.btn-ghost-dark {
-  background: transparent;
-  color: #E7E9DD;
-  border-color: #3A473F;
 }
 </style>
