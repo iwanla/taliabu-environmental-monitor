@@ -43,6 +43,7 @@ const props = defineProps<{
   changeOverlay?: { url: string; bbox: [number, number, number, number] } | null;
   initialView?: MapViewCamera;
   focusBounds?: [number, number, number, number] | null;
+  focusAlertAoi?: GeoJSON.Polygon | null;
   drawMode?: boolean;
   aoi?: GeoJSON.Polygon | null;
 }>();
@@ -273,6 +274,20 @@ function ensureAoiLayers() {
     type: "line",
     source: "aoi-area",
     paint: { "line-color": "#EBB44C", "line-width": 3 },
+  });
+
+  map.addSource("aoi-alert", { type: "geojson", data: EMPTY_FC });
+  map.addLayer({
+    id: "aoi-alert-casing",
+    type: "line",
+    source: "aoi-alert",
+    paint: { "line-color": "#14231D", "line-width": 5.5 },
+  });
+  map.addLayer({
+    id: "aoi-alert-line",
+    type: "line",
+    source: "aoi-alert",
+    paint: { "line-color": "#A63F2B", "line-width": 3, "line-dasharray": [2, 1.5] },
   });
 }
 
@@ -596,6 +611,16 @@ watch(
   () => props.focusBounds,
   (b) => {
     if (b && map) map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 80, maxZoom: 13 });
+  },
+);
+
+watch(
+  () => props.focusAlertAoi,
+  (aoi) => {
+    if (!map) return;
+    const source = map.getSource("aoi-alert") as GeoJSONSource | undefined;
+    if (!source) return;
+    source.setData(aoi ? { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: aoi }] } : EMPTY_FC);
   },
 );
 

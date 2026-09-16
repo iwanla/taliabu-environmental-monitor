@@ -16,7 +16,7 @@ const props = defineProps<{
   changeError?: string | null;
 }>();
 
-const emit = defineEmits<{ clearAoi: []; runChange: [payload: { type: ChangeType; dateA: string; dateB: string }]; focusAlert: [bbox: [number, number, number, number]] }>();
+const emit = defineEmits<{ clearAoi: []; runChange: [payload: { type: ChangeType; dateA: string; dateB: string }]; focusAlert: [alert: SavedAlert] }>();
 
 const changeType = ref<ChangeType>("vegetation-loss");
 const dateA = ref("");
@@ -313,7 +313,7 @@ function formatHa(ha?: number): string {
         <option v-for="(label, kind) in ALERT_LABELS" :key="kind" :value="kind">{{ label }}</option>
       </select>
       <template v-if="logAlerts.length">
-        <button v-for="a in logAlerts" :key="a.id" class="alert-log-row" :title="String(a.evidence.rule ?? '')" @click="emit('focusAlert', a.evidence.bbox)">
+        <button v-for="a in logAlerts" :key="a.id" class="alert-log-row" :title="String(a.evidence.rule ?? '')" @click="emit('focusAlert', a)">
           <span class="dot" :class="a.severity"></span>
           <span class="alert-log-kind">{{ alertLabel(a.kind) }}</span>
           <span class="alert-log-meta">{{ formatHa(a.evidence.changedHa) }} · {{ a.evidence.dateB }}</span>

@@ -44,6 +44,12 @@ const drawMode = ref(false);
 const aoi = ref<GeoJSON.Polygon | null>(null);
 const aoiError = ref<string | null>(null);
 const focusBounds = ref<[number, number, number, number] | null>(null);
+const focusAlertAoi = ref<GeoJSON.Polygon | null>(null);
+
+function handleFocusAlert(alert: { aoi: GeoJSON.Polygon | null; evidence: { bbox: [number, number, number, number] } }) {
+  focusBounds.value = alert.evidence.bbox;
+  focusAlertAoi.value = alert.aoi;
+}
 
 const change = ref<ChangeResult | null>(null);
 const changeLoading = ref(false);
@@ -338,6 +344,7 @@ onMounted(() => {
         :change-overlay="change ? { url: change.url, bbox: change.bbox } : null"
         :initial-view="camera ?? undefined"
         :focus-bounds="focusBounds"
+        :focus-alert-aoi="focusAlertAoi"
         :draw-mode="drawMode"
         :aoi="aoi"
         @feature-selected="(f, l) => { selectedFeature = f; selectedLayerId = l; }"
@@ -364,7 +371,7 @@ onMounted(() => {
       :change-error="changeError"
       @clear-aoi="clearAoi"
       @run-change="handleRunChange"
-      @focus-alert="(b) => (focusBounds = b)"
+      @focus-alert="handleFocusAlert"
     />
     <Timeline
        v-if="basemapMode === 'satellite'"
