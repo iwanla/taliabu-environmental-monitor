@@ -163,6 +163,16 @@ function formatHa(ha?: number): string {
           <span>Watershed</span>
           <span class="v">{{ analysis.watershed ?? "—" }}</span>
         </div>
+        <template v-if="analysis.elevation">
+          <div class="metric-row">
+            <span>Elevation</span>
+            <span class="v">{{ Math.round(analysis.elevation.minM) }}–{{ Math.round(analysis.elevation.maxM) }} m · mean {{ Math.round(analysis.elevation.meanM) }} m</span>
+          </div>
+          <div class="metric-row">
+            <span>Slope (DEMNAS)</span>
+            <span class="v">mean {{ analysis.slope!.meanDeg.toFixed(1) }}° · max {{ analysis.slope!.maxDeg.toFixed(0) }}°</span>
+          </div>
+        </template>
       </template>
 
       <div class="meta-heading">Change detection</div>

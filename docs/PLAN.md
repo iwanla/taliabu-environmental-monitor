@@ -803,6 +803,17 @@ Avoid dynamic DEM processing in Worker.
 - slope context tersedia;
 - mining/surface disturbance dapat dilihat bersama hydrology.
 
+## Status
+
+**In progress** — started 2026-09-16
+
+- Source DEM: DEMNAS via BIG ImageServer `exportImage` (geoservices.big.go.id) — verified live; 2000×2000 px (~66 m/px) over bbox [124.2, -2.35, 125.4, -1.15]. NOTE: server menghasilkan export rusak pada size=4000 (p99 = 0 m) — gunakan 2000. DEMNAS portal tanahair.indonesia.go.id dead; AWS terrarium tiles terbukti jalan sebagai fallback.
+- `scripts/terrain/preprocess.py` (Python, one-time preprocessing — bukan Worker): fetch tif, filter nodata/garbage spikes (nilai di luar [-100, 1700] m) + laut (<= 0.5 m) → alpha, tulis `public/data/terrain/{elevation,slope}.png` + `terrain.json`; slope via Horn 3×3 (numpy). Verified: max elev 1393 m (puncak Taliabu), slope max ~50°.
+- Layer `Elevation` + `Slope` (category terrain): static raster via MapLibre `image` source (`source.staticUrl` + `bbox` di `RasterLayerDefinition`), scene-independent, radio-group dengan raster lain; legend ramp.
+- AOI inspector metrics: elevation min/max/mean + slope mean/max via client-side sampling PNG statis (OffscreenCanvas, pola sama dengan changeDetection). Browser-verified: AOI 584 ha → elev 66–615 m, slope mean 17.1°/max 41°.
+- Dataset metadata `terrain-dem` di datasets.json.
+- Pending (deferred): D8 flow direction/accumulation, derived streams + watershed delineation, downstream path — official `watersheds.geojson` (BIG) sudah memenuhi kriteria "selected location dipetakan ke watershed" via point-in-polygon (Phase 8).
+
 # Phase 12 — Coastal and Sediment Monitoring
 
 ## Goal

@@ -10,6 +10,8 @@ export interface AoiAnalysis {
   nearestSettlement?: { name: string; distanceM: number };
   coastDistanceM?: number;
   watershed?: string;
+  elevation?: { minM: number; maxM: number; meanM: number };
+  slope?: { meanDeg: number; maxDeg: number };
 }
 
 const cache = new Map<string, Promise<GeoJSON.FeatureCollection>>();
@@ -90,6 +92,8 @@ export async function analyzeAoi(polygon: GeoJSON.Polygon): Promise<AoiAnalysis>
     (f) => isPolygonal(f.geometry) && booleanPointInPolygon(center, f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>),
   );
 
+  const terrain = await sampleTerrain(polygon);
+
   return {
     areaHa,
     permitPct: areaHa > 0 ? (permitAreaM2 / (areaHa * 10_000)) * 100 : 0,
@@ -98,5 +102,62 @@ export async function analyzeAoi(polygon: GeoJSON.Polygon): Promise<AoiAnalysis>
     nearestSettlement,
     coastDistanceM,
     watershed: watershedFeat ? String(watershedFeat.properties?.name ?? "Watershed") : undefined,
+    ...terrain,
+  };
+}
+
+// DEMNAS static rasters preprocessed by scripts/terrain/preprocess.py (see terrain.json)
+const TERRAIN_BBOX: [number, number, number, number] = [124.2, -2.35, 125.4, -1.15];
+const ELEV_RANGE: [number, number] = [0, 1400];
+const SLOPE_RANGE: [number, number] = [0, 60];
+
+async function decodeRaster(url: string): Promise<{ data: Uint8ClampedArray; w: number; h: number } | null> {
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const bitmap = await createImageBitmap(await res.blob());
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0);
+  return { data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data, w: bitmap.width, h: bitmap.height };
+}
+
+async function sampleTerrain(polygon: GeoJSON.Polygon): Promise<Pick<AoiAnalysis, "elevation" | "slope">> {
+  const [elev, slope] = await Promise.all([
+    decodeRaster("/data/terrain/elevation.png"),
+    decodeRaster("/data/terrain/slope.png"),
+  ]);
+  if (!elev || !slope) return {};
+
+  const [west, south, east, north] = TERRAIN_BBOX;
+  const { w, h } = elev;
+  const canvas = new OffscreenCanvas(w, h);
+  const ctx = canvas.getContext("2d")!;
+  ctx.beginPath();
+  polygon.coordinates[0].forEach(([lon, lat], i) => {
+    const x = ((lon - west) / (east - west)) * w;
+    const y = ((north - lat) / (north - south)) * h;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fill();
+  const mask = ctx.getImageData(0, 0, w, h).data;
+
+  let n = 0, eMin = Infinity, eMax = -Infinity, eSum = 0, sSum = 0, sMax = 0;
+  for (let p = 0; p < w * h; p++) {
+    if (mask[p * 4 + 3] === 0 || elev.data[p * 4 + 3] === 0) continue;
+    const elevM = (elev.data[p * 4] / 255) * (ELEV_RANGE[1] - ELEV_RANGE[0]) + ELEV_RANGE[0];
+    const slopeDeg = (slope.data[p * 4] / 255) * (SLOPE_RANGE[1] - SLOPE_RANGE[0]) + SLOPE_RANGE[0];
+    n++;
+    eMin = Math.min(eMin, elevM);
+    eMax = Math.max(eMax, elevM);
+    eSum += elevM;
+    sSum += slopeDeg;
+    sMax = Math.max(sMax, slopeDeg);
+  }
+  if (!n) return {};
+  return {
+    elevation: { minM: eMin, maxM: eMax, meanM: eSum / n },
+    slope: { meanDeg: sSum / n, maxDeg: sMax },
   };
 }
