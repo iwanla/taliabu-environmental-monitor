@@ -114,7 +114,7 @@ render.get("/render/tile/:z/:x/:y", async (c) => {
     return new Response(imageStream, {
       headers: {
         "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=86400",
+        "Cache-Control": "public, max-age=604800, immutable",
       },
     });
   } catch (err) {

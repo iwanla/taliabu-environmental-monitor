@@ -169,7 +169,7 @@ function addRasterLayer(def: MapLayerDefinition, from: string) {
   if (map.getLayer(layerId)) map.removeLayer(layerId);
   if (map.getSource(sourceId)) map.removeSource(sourceId);
 
-  map.addSource(sourceId, { type: "raster", tiles: rasterTileUrls(def, from), tileSize: 256 });
+  map.addSource(sourceId, { type: "raster", tiles: rasterTileUrls(def, from), tileSize: 256, minzoom: 7, maxzoom: 15 });
 
   const beforeLayer = map.getLayer("taliabu-boundary-fill") ? "taliabu-boundary-fill" : undefined;
   map.addLayer(
@@ -333,7 +333,7 @@ async function updateSatelliteLayers(scenes: SatelliteAcquisition[]) {
   if (existing) {
     existing.setTiles(tiles);
   } else {
-    map.addSource(sourceId, { type: "raster", tiles, tileSize: 256 });
+    map.addSource(sourceId, { type: "raster", tiles, tileSize: 256, minzoom: 7, maxzoom: 15 });
     const beforeLayer = map.getLayer("taliabu-boundary-fill") ? "taliabu-boundary-fill" : undefined;
     map.addLayer(
       { id: layerId, type: "raster", source: sourceId, paint: { "raster-opacity": 0.85 } },
