@@ -34,6 +34,7 @@ export interface MapViewCamera {
   zoom: number;
   bearing: number;
   pitch: number;
+  bounds?: [number, number, number, number];
 }
 
 const props = defineProps<{
@@ -529,15 +530,21 @@ onMounted(async () => {
 
     map.on("movestart", () => { mapMoving = true; });
     map.on("moveend", () => { mapMoving = false; });
-    map.on("move", () => {
+    const emitView = () => {
       if (!map) return;
       emit("viewChanged", {
         center: [map.getCenter().lng, map.getCenter().lat],
         zoom: map.getZoom(),
         bearing: map.getBearing(),
         pitch: map.getPitch(),
+        bounds: (() => {
+          const b = map.getBounds();
+          return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+        })(),
       });
-    });
+    };
+    map.on("move", emitView);
+    emitView();
 
     if (props.activeScenes?.length) updateSatelliteLayers(props.activeScenes);
     updateBasemap(props.basemapMode);

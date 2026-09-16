@@ -73,7 +73,7 @@ export function diffPixels(
   return { out, changed, valid };
 }
 
-async function renderRaw(metric: Rule["metric"], date: string, box: [number, number, number, number]): Promise<ImageData> {
+export async function renderRaw(metric: Rule["metric"], date: string, box: [number, number, number, number]): Promise<ImageData> {
   const to = date;
   // 10-day lookback: per-tile revisit + <=20% cloud filter can leave 5-day windows empty (north Taliabu tile)
   const from = new Date(new Date(date).getTime() - 9 * 86400000).toISOString().slice(0, 10);
@@ -124,20 +124,26 @@ export async function runChangeDetection(
   };
 }
 
-// Rasterize AOI exterior ring into a 0/1 pixel mask over the bbox grid.
-function aoiMask(aoi: GeoJSON.Polygon, box: [number, number, number, number], w: number, h: number) {
+// Rasterize polygon exterior/interior rings into a 0/1 pixel mask over the bbox grid.
+// Accepts Polygon and MultiPolygon (holes filled via evenodd).
+export function aoiMask(shape: GeoJSON.Polygon | GeoJSON.MultiPolygon, box: [number, number, number, number], w: number, h: number) {
   const [west, south, east, north] = box;
   const canvas = new OffscreenCanvas(w, h);
   const ctx = canvas.getContext("2d")!;
   ctx.beginPath();
-  aoi.coordinates[0].forEach(([lon, lat], i) => {
-    const x = ((lon - west) / (east - west)) * w;
-    const y = ((north - lat) / (north - south)) * h;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.closePath();
-  ctx.fill();
+  const polys = shape.type === "Polygon" ? [shape.coordinates] : shape.coordinates;
+  for (const poly of polys) {
+    for (const ring of poly) {
+      ring.forEach(([lon, lat], i) => {
+        const x = ((lon - west) / (east - west)) * w;
+        const y = ((north - lat) / (north - south)) * h;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+    }
+  }
+  ctx.fill("evenodd");
   const data = ctx.getImageData(0, 0, w, h).data;
   const mask = new Uint8Array(w * h);
   let inside = 0;

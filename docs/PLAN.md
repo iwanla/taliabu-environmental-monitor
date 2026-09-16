@@ -909,6 +909,19 @@ Bottom analytics panel aktif.
 - metric source/date dapat ditelusuri;
 - metric tidak ditampilkan tanpa metadata periode.
 
+## Status
+
+**Complete** — 2026-09-16
+
+- MetricsRow diganti dari placeholder ke panel analytics aktif: scope selector (Taliabu / Viewport / AOI / Permit, disabled bila konteks belum ada) + metrik land cover nyata — Vegetation (NDVI > 0.2), Bare/sparse, Water (MNDWI > 0.1), luas scope, cloud-free coverage. Semua dalam ha + % (unit konsisten).
+- `composables/analytics.ts`: `computeLandCover()` — fetch `ndvi-raw` + `mndwi-raw` 512px via POST /api/render (re-export `renderRaw`/`aoiMask` dari changeDetection; `aoiMask` kini support MultiPolygon + evenodd holes), decode + polygon mask + hitung ha.
+- Page wiring: watch scope/date/bounds-rounded-key/aoi/feature → debounce 600ms → compute; cache per (scope|date). Viewport key dibulatkan 2 desimal + kartu metrik min-height fixed — memutus layout feedback loop (panel berubah tinggi → canvas resize → bounds berubah → recompute; berkedip + 1900+ recompute). Hasil tidak di-null saat recompute (anti flicker).
+- `viewChanged` MapView kini menyertakan `bounds` + emit sekali saat load.
+- Metadata periode selalu tampil: "sentinel-2 l2a · ndvi & mndwi · acquired <date> · ~<res> m/px"; tanpa scene terpilih → panel minta pilih scene (metrik tak pernah tampil tanpa periode).
+- Browser-verified: Island 153.601 ha veg 52,3% @ 151 m/px; Viewport (air 55,3% — viewport mencakup laut); Permit "PATRIA SEKAR LAKSANA MULIA" 8.875 ha veg 56,8% @ 21 m/px; cache hit instan; render count stabil (loop mati); console bersih.
+- Catatan UX pre-existing: klik fitur mengambil topmost visible layer (watershed fill menutupi IUP) — di luar scope fase ini.
+- Vegetation loss / change zones tetap di panel AOI change detection (perbandingan dua tanggal); panel metrik menampilkan hint ke sana.
+
 # Phase 14 — D1 Persistence
 
 ## Goal

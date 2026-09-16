@@ -10,6 +10,7 @@ import CompareView from "./components/CompareView.vue";
 import { area } from "@turf/turf";
 import { AOI_MAX_HA } from "./composables/useAoiAnalysis";
 import { runChangeDetection, type ChangeResult, type ChangeType } from "./composables/changeDetection";
+import { computeLandCover, type AnalyticsScope, type LandCover } from "./composables/analytics";
 import type { BasemapMode } from "@/shared/types/layers";
 import { useLayers } from "./composables/useLayers";
 
@@ -52,6 +53,70 @@ function clearChange() {
   change.value = null;
   changeError.value = null;
 }
+
+const analyticsScope = ref<AnalyticsScope>("island");
+const analyticsResult = ref<LandCover | null>(null);
+const analyticsLoading = ref(false);
+const analyticsError = ref<string | null>(null);
+const islandShape = ref<GeoJSON.Polygon | null>(null);
+const analyticsCache = new Map<string, LandCover>();
+
+onMounted(async () => {
+  const fc = await (await fetch("/data/boundaries/taliabu-island.web.geojson")).json();
+  islandShape.value = fc.features[0]?.geometry ?? null;
+});
+
+let analyticsTimer: ReturnType<typeof setTimeout> | undefined;
+
+// viewport bounds rounded to 2dp: raw bounds jitter (canvas resize feedback from
+// panel height changes) must not retrigger metrics computation
+const viewportKey = computed(() => {
+  const b = camera.value?.bounds;
+  return b ? b.map((v) => v.toFixed(2)).join(",") : "";
+});
+
+watch([analyticsScope, () => selectedScene.value?.date, viewportKey, aoi, selectedFeature, selectedLayerId], ([scope, date, vpKey, aoiShape, feat, layerId]) => {
+  clearTimeout(analyticsTimer);
+  analyticsError.value = null;
+  if (!date) {
+    analyticsResult.value = null;
+    return;
+  }
+
+  let shape: GeoJSON.Polygon | GeoJSON.MultiPolygon | null = null;
+  let scopeKey: string = scope;
+  if (scope === "island") shape = islandShape.value;
+  else if (scope === "viewport") {
+    if (!vpKey) return;
+    const [w, s, e, n] = vpKey.split(",").map(Number);
+    shape = { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] };
+    scopeKey = `viewport|${vpKey}`;
+  } else if (scope === "aoi") shape = aoiShape;
+  else if (scope === "permit" && layerId?.replace(/-layer$/, "") === "mining-iup") shape = (feat?.geometry as GeoJSON.Polygon | GeoJSON.MultiPolygon | undefined) ?? null;
+
+  if (!shape) {
+    analyticsResult.value = null;
+    return;
+  }
+  const key = `${scopeKey}|${date}`;
+  const cached = analyticsCache.get(key);
+  if (cached) {
+    analyticsResult.value = cached;
+    return;
+  }
+
+  analyticsTimer = setTimeout(async () => {
+    analyticsLoading.value = true;
+    try {
+      const result = await computeLandCover(scope, shape!, date);
+      analyticsCache.set(key, result);
+      analyticsResult.value = result;
+    } catch {
+      analyticsError.value = "Metrics unavailable for this scene";
+    }
+    analyticsLoading.value = false;
+  }, 600);
+});
 
 async function handleRunChange(payload: { type: ChangeType; dateA: string; dateB: string }) {
   if (!aoi.value || changeLoading.value) return;
@@ -310,7 +375,16 @@ onMounted(() => {
       @toggle-compare="toggleCompare"
       @toggle-compare-mode="toggleCompareMode"
     />
-    <MetricsRow />
+    <MetricsRow
+      :result="analyticsResult"
+      :loading="analyticsLoading"
+      :error="analyticsError"
+      :scope="analyticsScope"
+      :scene-date="selectedScene?.date?.slice(0, 10) ?? null"
+      :has-aoi="!!aoi"
+      :permit-name="selectedLayerId?.replace(/-layer$/, '') === 'mining-iup' ? String(selectedFeature?.properties?.name ?? '') || null : null"
+      @change-scope="(s) => (analyticsScope = s)"
+    />
   </div>
 </template>
 
