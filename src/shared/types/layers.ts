@@ -35,6 +35,7 @@ export interface VectorLayerDefinition {
   id: string;
   name: string;
   sub?: string;
+  description?: string;
   category: LayerCategory;
   type: "vector";
   defaultVisible: boolean;
@@ -49,6 +50,7 @@ export interface RasterLayerDefinition {
   id: string;
   name: string;
   sub?: string;
+  description?: string;
   category: LayerCategory;
   type: "raster";
   defaultVisible: boolean;

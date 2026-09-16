@@ -25,6 +25,8 @@ function toggleCollapse(id: LayerCategory) {
   if (collapsed.value.has(id)) collapsed.value.delete(id);
   else collapsed.value.add(id);
 }
+
+const openDetails = ref<Record<string, boolean>>({});
 </script>
 
 <template>
@@ -53,34 +55,46 @@ function toggleCollapse(id: LayerCategory) {
         <span class="chevron" :class="{ collapsed: collapsed.has(cat.id) }">▸</span>
       </div>
       <template v-if="!collapsed.has(cat.id)">
-        <div
-          v-for="layer in getByCategory(cat.id)"
-          :key="layer.id"
-          class="layer-row"
-        >
-          <span class="name">
-            {{ layer.name }}
-            <span v-if="layer.sub" class="sub">{{ layer.sub }}</span>
-          </span>
-          <span class="opacity-val">{{ Math.round(getOpacity(layer.id) * 100) }}%</span>
-          <input
-            class="opacity"
-            type="range"
-            min="0"
-            max="100"
-            :value="getOpacity(layer.id) * 100"
-            @input="setOpacity(layer.id, Number(($event.target as HTMLInputElement).value) / 100)"
-          >
-          <label class="switch">
+        <template v-for="layer in getByCategory(cat.id)" :key="layer.id">
+          <div class="layer-row">
+            <button
+              v-if="layer.description || layer.legend"
+              class="detail-toggle"
+              type="button"
+              :aria-expanded="!!openDetails[layer.id]"
+              :title="openDetails[layer.id] ? 'Hide layer details' : 'Show layer details'"
+              @click="openDetails[layer.id] = !openDetails[layer.id]"
+            >{{ openDetails[layer.id] ? "▾" : "▸" }}</button>
+            <span class="name">
+              {{ layer.name }}
+              <span v-if="layer.sub" class="sub">{{ layer.sub }}</span>
+            </span>
+            <span class="opacity-val">{{ Math.round(getOpacity(layer.id) * 100) }}%</span>
             <input
-              type="checkbox"
-              :checked="isVisible(layer.id)"
-              @change="toggleLayer(layer.id)"
+              class="opacity"
+              type="range"
+              min="0"
+              max="100"
+              :value="getOpacity(layer.id) * 100"
+              @input="setOpacity(layer.id, Number(($event.target as HTMLInputElement).value) / 100)"
             >
-            <span class="track"></span>
-            <span class="thumb"></span>
-          </label>
-        </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                :checked="isVisible(layer.id)"
+                @change="toggleLayer(layer.id)"
+              >
+              <span class="track"></span>
+              <span class="thumb"></span>
+            </label>
+          </div>
+          <div v-if="openDetails[layer.id]" class="layer-detail">
+            <p v-if="layer.description">{{ layer.description }}</p>
+            <div v-for="item in layer.legend ?? []" :key="item.label" class="legend-row">
+              <span class="sw" :style="{ background: item.color }"></span>{{ item.label }}
+            </div>
+          </div>
+        </template>
       </template>
     </template>
 
@@ -210,6 +224,48 @@ function toggleCollapse(id: LayerCategory) {
   color: var(--ink-faint);
   font-family: var(--font-mono);
   margin-top: 1px;
+}
+
+.layer-row .detail-toggle {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 10px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  flex: none;
+  width: 12px;
+  text-align: center;
+}
+
+.layer-detail {
+  padding: 2px 16px 9px 37px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.layer-detail p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.layer-detail .legend-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.layer-detail .sw {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  flex: none;
 }
 
 .layer-row .opacity {
