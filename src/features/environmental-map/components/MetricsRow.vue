@@ -98,7 +98,7 @@ function ha(v: number): string {
   border-top: 1px solid var(--line);
   padding: 14px 20px 18px;
   display: grid;
-  grid-template-columns: 250px 1fr 1fr;
+  grid-template-columns: 330px 1fr 1fr;
   gap: 16px;
 }
 
@@ -118,6 +118,7 @@ function ha(v: number): string {
   align-items: baseline;
   gap: 8px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .trend-card h5 {
@@ -142,8 +143,8 @@ function ha(v: number): string {
 }
 
 .scope-btn.on {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--ink);
+  border-color: var(--ink);
   color: #fff;
 }
 

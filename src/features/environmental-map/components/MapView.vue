@@ -148,6 +148,7 @@ function addLayerToMap(def: MapLayerDefinition, data: GeoJSON.FeatureCollection)
     map.setLayoutProperty(layerId, "line-join", "round");
   } else if (type === "circle") {
     map.setPaintProperty(layerId, "circle-opacity", opacity);
+    map.setPaintProperty(layerId, "circle-stroke-opacity", opacity);
   } else {
     map.setPaintProperty(layerId, "fill-opacity", opacity);
   }
@@ -169,6 +170,7 @@ function updateLayerVisibility(def: MapLayerDefinition) {
 
   if (def.layerType === "point") {
     map.setPaintProperty(layerId, "circle-opacity", visible ? opacity : 0);
+    map.setPaintProperty(layerId, "circle-stroke-opacity", visible ? opacity : 0);
   } else if (def.layerType === "fill") {
     map.setPaintProperty(layerId, `${def.layerType}-opacity`, visible ? opacity : 0);
     const outlineId = `${def.id}-outline`;
@@ -231,11 +233,18 @@ function ensureAoiLayers() {
 
   map.addSource("aoi-draw", { type: "geojson", data: EMPTY_FC });
   map.addLayer({
+    id: "aoi-draw-casing",
+    type: "line",
+    source: "aoi-draw",
+    filter: ["==", ["geometry-type"], "LineString"],
+    paint: { "line-color": "#14231D", "line-width": 5, "line-dasharray": [2, 2] },
+  });
+  map.addLayer({
     id: "aoi-draw-line",
     type: "line",
     source: "aoi-draw",
     filter: ["==", ["geometry-type"], "LineString"],
-    paint: { "line-color": "#C68A22", "line-width": 2, "line-dasharray": [2, 2] },
+    paint: { "line-color": "#EBB44C", "line-width": 2.5, "line-dasharray": [2, 2] },
   });
   map.addLayer({
     id: "aoi-draw-verts",
@@ -253,10 +262,16 @@ function ensureAoiLayers() {
     paint: { "fill-color": "#C68A22", "fill-opacity": 0.14 },
   });
   map.addLayer({
+    id: "aoi-area-casing",
+    type: "line",
+    source: "aoi-area",
+    paint: { "line-color": "#14231D", "line-width": 5.5 },
+  });
+  map.addLayer({
     id: "aoi-area-line",
     type: "line",
     source: "aoi-area",
-    paint: { "line-color": "#C68A22", "line-width": 2.5 },
+    paint: { "line-color": "#EBB44C", "line-width": 3 },
   });
 }
 
@@ -408,7 +423,7 @@ function resetView() {
 function updateBasemap(mode: BasemapMode) {
   if (!map) return;
   for (const layer of map.getStyle().layers ?? []) {
-    if (layer.id.endsWith("-layer") || layer.id.endsWith("-outline") || layer.id.startsWith("taliabu-")) continue;
+    if (layer.id.endsWith("-layer") || layer.id.endsWith("-outline") || layer.id.startsWith("taliabu-") || layer.id.startsWith("aoi-")) continue;
     if (!originalBasemapVisibility.has(layer.id)) {
       originalBasemapVisibility.set(layer.id, layer.layout?.visibility as "visible" | "none" | undefined);
     }
@@ -506,17 +521,25 @@ onMounted(async () => {
 
   map.on("click", (e) => {
       if (!map) return;
+      const m = map;
       if (props.drawMode) {
         handleDrawClick(e);
         return;
       }
+      // ponytail: queryRenderedFeatures THROWS if any id is missing (raster layers
+      // are added lazily), so only query ids that exist on the map right now.
       const clickedLayers = layers.value
-        .filter((d) => isVisible(d.id))
+        .filter((d) => isVisible(d.id) && m.getLayer(`${d.id}-layer`))
         .map((d) => `${d.id}-layer`);
 
-      const features = map.queryRenderedFeatures(e.point, { layers: clickedLayers });
-      if (features.length > 0) {
-        emit("featureSelected", features[0] as unknown as GeoJSON.Feature, features[0].layer?.id ?? null);
+      // ponytail: fills (drainage/watersheds) paint above these and would swallow
+      // clicks; add more ids here only if a small clickable layer gets buried.
+      const clickPriority = ["river-outlets-layer", "settlements-layer", "mining-iup-layer"];
+      const features = m.queryRenderedFeatures(e.point, { layers: clickedLayers });
+      const picked =
+        clickPriority.map((id) => features.find((f) => f.layer?.id === id)).find(Boolean) ?? features[0];
+      if (picked) {
+        emit("featureSelected", picked as unknown as GeoJSON.Feature, picked.layer?.id ?? null);
       } else {
         emit("featureSelected", null, null);
       }
