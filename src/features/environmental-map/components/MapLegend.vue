@@ -68,8 +68,8 @@ const allGroups = computed(() => {
         <span>{{ collapsed[group.id] ? "▸" : "▾" }}</span>{{ group.title }}
       </button>
       <div v-if="!collapsed[group.id]" class="group-items">
-        <div v-for="item in group.items" :key="item.label" class="row">
-          <span class="sw" :style="{ background: item.color }"></span>{{ item.label }}
+        <div v-for="(item, i) in group.items" :key="i" class="row">
+          <span class="sw" :class="{ ramp: item.color.startsWith('linear-gradient') }" :style="{ background: item.color }"></span>{{ item.label }}
         </div>
       </div>
     </template>
@@ -127,5 +127,11 @@ const allGroups = computed(() => {
   height: 11px;
   border-radius: 3px;
   flex: none;
+}
+
+.sw.ramp {
+  width: 84px;
+  height: 9px;
+  border-radius: 2px;
 }
 </style>

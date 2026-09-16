@@ -71,15 +71,6 @@ const openDetails = ref<Record<string, boolean>>({});
               {{ layer.name }}
               <span v-if="layer.sub" class="sub">{{ layer.sub }}</span>
             </span>
-            <span class="opacity-val">{{ Math.round(getOpacity(layer.id) * 100) }}%</span>
-            <input
-              class="opacity"
-              type="range"
-              min="0"
-              max="100"
-              :value="getOpacity(layer.id) * 100"
-              @input="setOpacity(layer.id, Number(($event.target as HTMLInputElement).value) / 100)"
-            >
             <label class="switch">
               <input
                 type="checkbox"
@@ -92,8 +83,19 @@ const openDetails = ref<Record<string, boolean>>({});
           </div>
           <div v-if="openDetails[layer.id]" class="layer-detail">
             <p v-if="layer.description">{{ layer.description }}</p>
-            <div v-for="item in layer.legend ?? []" :key="item.label" class="legend-row">
-              <span class="sw" :style="{ background: item.color }"></span>{{ item.label }}
+            <div v-for="(item, i) in layer.legend ?? []" :key="i" class="legend-row">
+              <span class="sw" :class="{ ramp: item.color.startsWith('linear-gradient') }" :style="{ background: item.color }"></span>{{ item.label }}
+            </div>
+            <div v-if="isVisible(layer.id)" class="opacity-row">
+              <input
+                class="opacity"
+                type="range"
+                min="0"
+                max="100"
+                :value="getOpacity(layer.id) * 100"
+                @input="setOpacity(layer.id, Number(($event.target as HTMLInputElement).value) / 100)"
+              >
+              <span class="opacity-val">{{ Math.round(getOpacity(layer.id) * 100) }}%</span>
             </div>
           </div>
         </template>
@@ -268,12 +270,24 @@ button.name {
   flex: none;
 }
 
-.layer-row .opacity {
-  width: 42px;
+.layer-detail .sw.ramp {
+  width: 84px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.layer-detail .opacity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.layer-detail .opacity {
+  flex: 1;
   accent-color: var(--ink-soft);
 }
 
-.layer-row .opacity-val {
+.layer-detail .opacity-val {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--ink-faint);
@@ -281,7 +295,7 @@ button.name {
   text-align: right;
 }
 
-.switch {
+.layer-row .switch {
   position: relative;
   width: 30px;
   height: 17px;
