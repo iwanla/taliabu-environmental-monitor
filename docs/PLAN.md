@@ -961,6 +961,17 @@ Scene discovery dan analysis dapat reuse cached metadata.
 - schema migrations tersedia;
 - storage tetap metadata-focused.
 
+## Status
+
+**Complete** — 2026-09-16
+
+- `migrations/0001_init.sql`: 4 tabel metadata-only — `satellite_scenes` (PK id STAC, index acquired_at), `analysis_runs` (status CHECK running/done/failed), `environmental_alerts` (kosong — diisi Phase 15), `app_config` (kosong, diisi saat ada kebutuhan nyata). Tidak ada raster/tile di D1.
+- `routes/scenes.ts`: write-through — tiap STAC search di-upsert ke `satellite_scenes` via `INSERT OR IGNORE` + `db.batch`; saat STAC gagal, fallback baca cache untuk range yang sama (flag `cached: true` di response). Deliverable "reuse cached metadata" terpenuhi; consumer penuh di Phase 17 (Scheduled Discovery).
+- `routes/render.ts`: tiap POST `/api/render` tercatat di `analysis_runs` — insert `running` → update `done`/`failed` (+ error message). Path tile GET `/render/tile/:z/:x/:y` tidak dicatat (bukan analysis, hanya render).
+- Verified lokal (wrangler dev + D1 local): 12 tile tersimpan dari search 2026-09-01→16; panggilan ulang endpoint yang sama → tetap 12 baris (dedup ✓); POST render NDVI 256px → run #1 status `done` ✓; `vue-tsc` bersih.
+- Catatan: `tsconfig.json` hanya include `src/` — worker tidak pernah di-typecheck (dikompilasi esbuild wrangler). Dibiarkan seperti itu.
+- Deploy nanti: ganti `database_id` placeholder di wrangler.jsonc → `wrangler d1 migrations apply taliabu-db --remote`.
+
 # Phase 15 — Environmental Alerts
 
 ## Goal
