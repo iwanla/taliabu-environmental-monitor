@@ -47,6 +47,7 @@ function evaluatePixel(samples) {
   else imgVals = [0,0.27,0,samples.dataMask];
   return imgVals;
 }`,
+  // Copernicus Browser NDWI default output: green ramp on -val, blue ramp on val^(1/4)
   ndwi: `//VERSION=3
 function setup() {
   return {
@@ -54,16 +55,15 @@ function setup() {
     output: { bands: 4 }
   };
 }
-function evaluatePixel(s) {
-  var ndwi = (s.B03 - s.B08) / (s.B03 + s.B08 + 1e-10);
-  var c = colorBlend(ndwi, [0.0, 0.3, 0.5, 0.7, 1.0], [
-    [0.85, 0.82, 0.75, 1],
-    [0.55, 0.75, 0.82, 1],
-    [0.20, 0.55, 0.75, 1],
-    [0.05, 0.30, 0.65, 1],
-    [0.00, 0.10, 0.45, 1]
-  ]);
-  return [c[0], c[1], c[2], s.dataMask];
+function evaluatePixel(samples) {
+  let val = index(samples.B03, samples.B08);
+  let imgVals = null;
+  if (val < 0) {
+    imgVals = colorBlend(-val, [0, 1], [[1, 1, 1], [0, 0.502, 0]]);
+  } else {
+    imgVals = colorBlend(Math.sqrt(Math.sqrt(val)), [0, 1], [[1, 1, 1], [0, 0, 0.8]]);
+  }
+  return [imgVals[0], imgVals[1], imgVals[2], samples.dataMask];
 }`,
   mndwi: `//VERSION=3
 function setup() {
