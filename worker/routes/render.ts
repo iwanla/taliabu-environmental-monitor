@@ -66,4 +66,61 @@ render.post("/render", async (c) => {
   }
 });
 
+render.get("/render/tile/:z/:x/:y", async (c) => {
+  if (!c.env.COPERNICUS_CLIENT_ID || !c.env.COPERNICUS_CLIENT_SECRET) {
+    return c.json(
+      { error: "COPERNICUS_NOT_CONFIGURED", message: "Copernicus credentials not set." },
+      500,
+    );
+  }
+
+  const z = +c.req.param("z");
+  const x = +c.req.param("x");
+  const y = +c.req.param("y");
+  const n = 2 ** z;
+  if (!(z >= 6 && z <= 18) || !(x >= 0 && x < n) || !(y >= 0 && y < n)) {
+    return c.json({ error: "INVALID_TILE" }, 400);
+  }
+
+  const type = c.req.query("type") ?? "true-color";
+  if (!VALID_TYPES.includes(type)) {
+    return c.json({ error: "INVALID_TYPE", message: `Unknown type: ${type}. Valid: ${VALID_TYPES.join(", ")}` }, 400);
+  }
+
+  const from = c.req.query("from");
+  const to = c.req.query("to") ?? from;
+  if (!from || !to) {
+    return c.json({ error: "MISSING_TIMERANGE", message: "from (and optionally to) query params required." }, 400);
+  }
+
+  const lat = (t: number) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * t) / n))) * 180) / Math.PI;
+  const bbox: [number, number, number, number] = [
+    (x / n) * 360 - 180,
+    lat(y + 1),
+    ((x + 1) / n) * 360 - 180,
+    lat(y),
+  ];
+
+  try {
+    const imageStream = await renderScene(c.env.COPERNICUS_CLIENT_ID, c.env.COPERNICUS_CLIENT_SECRET, {
+      bbox,
+      from,
+      to,
+      maxCloudCoverage: Number(c.req.query("maxCloud") ?? 20),
+      width: 256,
+      height: 256,
+      type,
+    });
+    return new Response(imageStream, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=86400",
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return c.json({ error: "RENDER_ERROR", message: msg, retryable: true }, 502);
+  }
+});
+
 export default render;

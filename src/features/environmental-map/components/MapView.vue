@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { Map as MaplibreMap, LngLatBounds } from "maplibre-gl";
-import type { GeoJSONSource, MapMouseEvent } from "maplibre-gl";
+import type { GeoJSONSource, MapMouseEvent, RasterTileSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import MapLegend from "./MapLegend.vue";
 import { useLayers } from "../composables/useLayers";
@@ -59,15 +59,6 @@ let map: MaplibreMap | null = null;
 const loadedSources = new Set<string>();
 const originalBasemapVisibility = new Map<string, "visible" | "none" | undefined>();
 
-const RASTER_BBOX: [number, number, number, number] = [123.8, -2.5, 125.8, -1.0];
-const RASTER_COORDS: [[number, number], [number, number], [number, number], [number, number]] = [
-  [RASTER_BBOX[0], RASTER_BBOX[3]],
-  [RASTER_BBOX[2], RASTER_BBOX[3]],
-  [RASTER_BBOX[2], RASTER_BBOX[1]],
-  [RASTER_BBOX[0], RASTER_BBOX[1]],
-];
-
-const activeRasterLayers = new Map<string, { url: string }>();
 const legendGroups = ref<{ id: string; title: string; items: { label: string; color: string }[] }[]>([]);
 
 async function loadGeoJSON(sourceId: string, url: string) {
@@ -169,7 +160,7 @@ function updateLayerVisibility(def: MapLayerDefinition) {
   }
 }
 
-function addRasterLayer(def: MapLayerDefinition, imageUrl: string) {
+function addRasterLayer(def: MapLayerDefinition, from: string) {
   if (!map || def.type !== "raster") return;
 
   const sourceId = `${def.id}-raster-src`;
@@ -178,11 +169,7 @@ function addRasterLayer(def: MapLayerDefinition, imageUrl: string) {
   if (map.getLayer(layerId)) map.removeLayer(layerId);
   if (map.getSource(sourceId)) map.removeSource(sourceId);
 
-  map.addSource(sourceId, {
-    type: "image",
-    url: imageUrl,
-    coordinates: RASTER_COORDS,
-  });
+  map.addSource(sourceId, { type: "raster", tiles: rasterTileUrls(def, from), tileSize: 256 });
 
   const beforeLayer = map.getLayer("taliabu-boundary-fill") ? "taliabu-boundary-fill" : undefined;
   map.addLayer(
@@ -288,47 +275,23 @@ function onAoiKeydown(e: KeyboardEvent) {
   emit("aoiCancelled");
 }
 
-async function loadRasterLayer(def: MapLayerDefinition, from: string) {
-  if (!map || def.type !== "raster") return;
-
-  const sourceId = `${def.id}-raster-src`;
-  const layerId = `${def.id}-layer`;
-
-  const isSAR = def.source.evalscriptKey === "sar";
-  const to = isSAR
+function rasterTileUrls(def: MapLayerDefinition, from: string) {
+  const source = def.source;
+  if (source.type !== "raster") return [];
+  const to = source.evalscriptKey.startsWith("sar")
     ? new Date(new Date(from).getTime() + 30 * 86400000).toISOString().slice(0, 10)
     : from;
+  const q = new URLSearchParams({ type: source.evalscriptKey, from, to, maxCloud: "20" });
+  return [`${location.origin}/api/render/tile/{z}/{x}/{y}?${q}`];
+}
 
-  try {
-    const res = await fetch("/api/render", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bbox: RASTER_BBOX,
-        from,
-        to,
-        type: def.source.evalscriptKey,
-        maxCloudCoverage: 20,
-        width: 1536,
-        height: 1024,
-      }),
-    });
-
-    if (!res.ok) return;
-
-    const blob = await res.blob();
-    const imageUrl = URL.createObjectURL(blob);
-
-    const existing = map.getSource(sourceId);
-    if (existing && "updateImage" in existing) {
-      (existing as any).updateImage({ url: imageUrl });
-    } else {
-      addRasterLayer(def, imageUrl);
-    }
-
-    activeRasterLayers.set(def.id, { url: imageUrl });
-  } catch {
-    // silent fail
+function loadRasterLayer(def: MapLayerDefinition, from: string) {
+  if (!map || def.type !== "raster") return;
+  const source = map.getSource(`${def.id}-raster-src`) as RasterTileSource | undefined;
+  if (source) {
+    source.setTiles(rasterTileUrls(def, from));
+  } else {
+    addRasterLayer(def, from);
   }
 }
 
@@ -340,12 +303,6 @@ function unloadRasterLayer(def: MapLayerDefinition) {
 
   if (map.getLayer(layerId)) map.removeLayer(layerId);
   if (map.getSource(sourceId)) map.removeSource(sourceId);
-
-  const entry = activeRasterLayers.get(def.id);
-  if (entry) {
-    URL.revokeObjectURL(entry.url);
-    activeRasterLayers.delete(def.id);
-  }
 }
 
 async function updateRasterLayers(from: string) {
@@ -368,53 +325,24 @@ async function updateSatelliteLayers(scenes: SatelliteAcquisition[]) {
     return;
   }
 
-  const scene = scenes[0];
-  const from = scene.acquiredAt.slice(0, 10);
+  const from = scenes[0].acquiredAt.slice(0, 10);
+  const q = new URLSearchParams({ type: "true-color", from, to: from, maxCloud: "100" });
+  const tiles = [`${location.origin}/api/render/tile/{z}/{x}/{y}?${q}`];
 
-  try {
-    const res = await fetch("/api/render", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bbox: [123.8, -2.5, 125.8, -1.0],
-        from,
-        to: from,
-        maxCloudCoverage: 100,
-        width: 1536,
-        height: 1024,
-      }),
-    });
-
-    if (!res.ok) return;
-
-    const blob = await res.blob();
-    const imageUrl = URL.createObjectURL(blob);
-
-    const existing = map.getSource(sourceId);
-    if (existing && "updateImage" in existing) {
-      (existing as any).updateImage({ url: imageUrl });
-    } else {
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-      if (existing) map.removeSource(sourceId);
-
-      map.addSource(sourceId, {
-        type: "image",
-        url: imageUrl,
-        coordinates: RASTER_COORDS,
-      });
-
-      const beforeLayer = map.getLayer("taliabu-boundary-fill") ? "taliabu-boundary-fill" : undefined;
-      map.addLayer(
-        { id: layerId, type: "raster", source: sourceId, paint: { "raster-opacity": 0.85 } },
-        beforeLayer,
-      );
-    }
-
-    updateRasterLayers(from);
-    updateBasemap(props.basemapMode);
-  } catch {
-    // silent fail
+  const existing = map.getSource(sourceId) as RasterTileSource | undefined;
+  if (existing) {
+    existing.setTiles(tiles);
+  } else {
+    map.addSource(sourceId, { type: "raster", tiles, tileSize: 256 });
+    const beforeLayer = map.getLayer("taliabu-boundary-fill") ? "taliabu-boundary-fill" : undefined;
+    map.addLayer(
+      { id: layerId, type: "raster", source: sourceId, paint: { "raster-opacity": 0.85 } },
+      beforeLayer,
+    );
   }
+
+  updateRasterLayers(from);
+  updateBasemap(props.basemapMode);
 }
 
 function zoomIn() { map?.zoomIn(); }
