@@ -1,4 +1,4 @@
-import { area, intersect, pointToLineDistance, booleanPointInPolygon, centroid, featureCollection } from "@turf/turf";
+import { area, intersect, pointToLineDistance, booleanPointInPolygon, centroid, featureCollection, point, distance } from "@turf/turf";
 
 export const AOI_MAX_HA = 10_000;
 
@@ -7,6 +7,7 @@ export interface AoiAnalysis {
   permitPct: number;
   permits: string[];
   nearestRiver?: { name: string; distanceM: number };
+  nearestSettlement?: { name: string; distanceM: number };
   coastDistanceM?: number;
   watershed?: string;
 }
@@ -27,11 +28,12 @@ function isLineal(g: GeoJSON.Geometry): g is GeoJSON.LineString | GeoJSON.MultiL
 }
 
 export async function analyzeAoi(polygon: GeoJSON.Polygon): Promise<AoiAnalysis> {
-  const [iup, rivers, coast, watersheds] = await Promise.all([
+  const [iup, rivers, coast, watersheds, settlementAreas] = await Promise.all([
     load("/data/mining/iup.geojson"),
     load("/data/hydrology/rivers.geojson"),
     load("/data/coastal/baseline-coastline.geojson"),
     load("/data/hydrology/watersheds.geojson"),
+    load("/data/human/settlement-areas.geojson"),
   ]);
 
   const areaHa = area(polygon) / 10_000;
@@ -69,6 +71,21 @@ export async function analyzeAoi(polygon: GeoJSON.Polygon): Promise<AoiAnalysis>
     coastDistanceM = coastDistanceM == null ? dM : Math.min(coastDistanceM, dM);
   }
 
+  let nearestSettlement: AoiAnalysis["nearestSettlement"];
+  for (const f of settlementAreas.features) {
+    const rings: GeoJSON.Position[][] =
+      f.geometry?.type === "Polygon" ? f.geometry.coordinates :
+      f.geometry?.type === "MultiPolygon" ? (f.geometry.coordinates as GeoJSON.Position[][][]).flat() : [];
+    for (const ring of rings) {
+      for (const coord of ring) {
+        const dM = distance(center, point(coord), { units: "kilometers" }) * 1000;
+        if (!nearestSettlement || dM < nearestSettlement.distanceM) {
+          nearestSettlement = { name: String(f.properties?.name ?? "").trim() || "Settlement", distanceM: dM };
+        }
+      }
+    }
+  }
+
   const watershedFeat = watersheds.features.find(
     (f) => isPolygonal(f.geometry) && booleanPointInPolygon(center, f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>),
   );
@@ -78,6 +95,7 @@ export async function analyzeAoi(polygon: GeoJSON.Polygon): Promise<AoiAnalysis>
     permitPct: areaHa > 0 ? (permitAreaM2 / (areaHa * 10_000)) * 100 : 0,
     permits,
     nearestRiver,
+    nearestSettlement,
     coastDistanceM,
     watershed: watershedFeat ? String(watershedFeat.properties?.name ?? "Watershed") : undefined,
   };

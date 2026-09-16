@@ -11,6 +11,9 @@ import { area } from "@turf/turf";
 import { AOI_MAX_HA } from "./composables/useAoiAnalysis";
 import { runChangeDetection, type ChangeResult, type ChangeType } from "./composables/changeDetection";
 import type { BasemapMode } from "@/shared/types/layers";
+import { useLayers } from "./composables/useLayers";
+
+const { layers, setLayer } = useLayers();
 
 const selectedFeature = ref<GeoJSON.Feature | null>(null);
 const selectedLayerId = ref<string | null>(null);
@@ -18,6 +21,19 @@ const scenes = ref<SatelliteAcquisition[]>([]);
 const selectedScene = ref<SatelliteAcquisition | null>(null);
 const activePreset = ref("latest");
 const basemapMode = ref<BasemapMode>("vector");
+const miningImpact = ref(false);
+
+const MINING_IMPACT_ON = ["mining-iup", "ndvi", "rivers", "watersheds", "coastline", "settlement-areas"];
+
+function toggleMiningImpact() {
+  miningImpact.value = !miningImpact.value;
+  if (miningImpact.value) {
+    handleBasemapChanged("satellite");
+    for (const l of layers.value) setLayer(l.id, MINING_IMPACT_ON.includes(l.id));
+  } else {
+    for (const l of layers.value) setLayer(l.id, l.defaultVisible);
+  }
+}
 
 const compareMode = ref<"swipe" | "split" | null>(null);
 const sceneB = ref<SatelliteAcquisition | null>(null);
@@ -247,7 +263,7 @@ onMounted(() => {
 <template>
   <div class="app">
     <AppHeader :latest-acquisition="scenes[0] ?? null" />
-    <LayerPanel :draw-mode="drawMode" :basemap-mode="basemapMode" @draw-aoi="toggleDrawAoi" @basemap-changed="handleBasemapChanged" />
+    <LayerPanel :draw-mode="drawMode" :basemap-mode="basemapMode" :mining-impact="miningImpact" @draw-aoi="toggleDrawAoi" @basemap-changed="handleBasemapChanged" @toggle-mining-impact="toggleMiningImpact" />
     <div class="map-area">
       <MapView
         v-if="!compareMode"

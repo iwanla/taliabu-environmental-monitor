@@ -152,6 +152,10 @@ function formatHa(ha?: number): string {
           <span class="v">{{ analysis.nearestRiver ? `${analysis.nearestRiver.name} · ${formatM(analysis.nearestRiver.distanceM)}` : "—" }}</span>
         </div>
         <div class="metric-row">
+          <span>Nearest settlement</span>
+          <span class="v">{{ analysis.nearestSettlement ? `${analysis.nearestSettlement.name} · ${formatM(analysis.nearestSettlement.distanceM)}` : "—" }}</span>
+        </div>
+        <div class="metric-row">
           <span>Distance to coast</span>
           <span class="v">{{ formatM(analysis.coastDistanceM) }}</span>
         </div>

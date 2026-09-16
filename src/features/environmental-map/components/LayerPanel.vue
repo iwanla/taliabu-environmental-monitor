@@ -6,8 +6,8 @@ import type { BasemapMode } from "@/shared/types/layers";
 
 const { layers, isVisible, getOpacity, toggleLayer, setOpacity, getByCategory } = useLayers();
 
-const props = defineProps<{ drawMode?: boolean; basemapMode: BasemapMode }>();
-const emit = defineEmits<{ drawAoi: []; basemapChanged: [mode: BasemapMode] }>();
+const props = defineProps<{ drawMode?: boolean; basemapMode: BasemapMode; miningImpact?: boolean }>();
+const emit = defineEmits<{ drawAoi: []; basemapChanged: [mode: BasemapMode]; toggleMiningImpact: [] }>();
 
 const categories: { id: LayerCategory; label: string; color: string }[] = [
   { id: "satellite", label: "Satellite", color: "var(--cat-satellite)" },
@@ -29,6 +29,16 @@ function toggleCollapse(id: LayerCategory) {
 
 <template>
   <aside class="layers">
+    <button
+      class="mining-impact"
+      :class="{ active: props.miningImpact }"
+      type="button"
+      :aria-pressed="!!props.miningImpact"
+      @click="emit('toggleMiningImpact')"
+    >
+      {{ props.miningImpact ? "Exit Mining Impact" : "Mining Impact mode" }}
+    </button>
+
     <div class="panel-title">Basemap</div>
     <div class="basemap-row">
       <button v-for="mode in ([['vector', 'Vector'], ['satellite', 'Satellite'], ['minimal', 'Minimal']] as [BasemapMode, string][])" :key="mode[0]" class="tab" :class="{ active: props.basemapMode === mode[0] }" type="button" @click="emit('basemapChanged', mode[0])">
@@ -89,7 +99,27 @@ function toggleCollapse(id: LayerCategory) {
   background: var(--paper-raised);
   border-right: 1px solid var(--line);
   overflow-y: auto;
-  padding-bottom: 16px;
+  padding: 10px;
+}
+
+.mining-impact {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper-sunk);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.mining-impact.active {
+  background: var(--cat-mining, #B4652A);
+  border-color: var(--cat-mining, #B4652A);
+  color: #F7F8F1;
 }
 
 .panel-title {

@@ -33,6 +33,10 @@ export function useLayers() {
     }
   }
 
+  function setLayer(layerId: string, visible: boolean) {
+    if (layerStates[layerId]) layerStates[layerId].visible = visible;
+  }
+
   function setOpacity(layerId: string, opacity: number) {
     if (layerStates[layerId]) {
       layerStates[layerId].opacity = opacity;
@@ -48,6 +52,7 @@ export function useLayers() {
     isVisible,
     getOpacity,
     toggleLayer,
+    setLayer,
     setOpacity,
     getByCategory,
   };

@@ -748,6 +748,16 @@ One-click `Mining Impact` mode.
 - tidak menduplikasi implementation;
 - inspector memberikan spatial relationship yang relevan.
 
+## Status
+
+**Completed** — 2026-09-16
+
+- Tombol "Mining Impact mode" di LayerPanel: mengaktifkan basemap Satellite + preset layer (IUP, NDVI, rivers, watersheds, coastline, settlement areas); toggle off mengembalikan visibility ke default.
+- Preset hanya meng-compose layer yang sudah ada (reuse `useLayers.setLayer`), tanpa duplikasi; Vegetation Loss tersedia via Change Detection di inspector (tidak auto-request tanpa aksi user).
+- Inspector AOI kini menampilkan "Nearest settlement" (jarak ke polygon permukiman BIG terdekat).
+- Sediment proxy belum ada — menyusul di Phase 12.
+- Browser-verified: mode aktif, basemap+timeline beralih Satellite, NDVI raster termuat, analysis 763 ha / confidence 100%; vue-tsc + build pass.
+
 # Phase 11 — Terrain and Hydrology
 
 ## Goal
