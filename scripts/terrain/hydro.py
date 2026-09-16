@@ -5,10 +5,12 @@ encoding from the DEMNAS tif fetched by preprocess.py.
 Output:
   public/data/terrain/fdr.png        R=D8 code (ESRI 1..128), G=log accumulation, A=land mask
   public/data/hydrology/drainage.geojson  derived stream polylines
+  public/data/hydrology/watersheds-derived.geojson  catchment polygon per stream mouth
 """
 
 import json
 import heapq
+import math
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +19,7 @@ from PIL import Image
 TIF = Path("public/data/terrain/demnas.tif")
 OUT = Path("public/data/terrain")
 DRAINAGE = Path("public/data/hydrology/drainage.geojson")
+WATERSHEDS = Path("public/data/hydrology/watersheds-derived.geojson")
 VALID_RANGE = (-100.0, 1700.0)
 STREAM_THRESHOLD = 2000  # cells (~8.9 km2 catchment at 66 m/px)
 
@@ -166,6 +169,126 @@ def drainage_geojson(fdr: np.ndarray, acc: np.ndarray, dem: np.ndarray, bbox) ->
     print(f"wrote {DRAINAGE} ({len(features)} streams)")
 
 
+def label_catchments(filled: np.ndarray, fdr: np.ndarray, acc: np.ndarray, dem: np.ndarray) -> np.ndarray:
+    """Catchment id per land cell: propagate each stream mouth's label upstream by
+    walking cells in decreasing filled elevation and copying the downstream label.
+    -1 = drains to a non-stream coast cell (excluded)."""
+    h, w = dem.shape
+    land = ~np.isnan(dem)
+    stream = (acc >= STREAM_THRESHOLD) & land
+    labels = np.full(h * w, -1, dtype=np.int32)
+    mouths = stream & (fdr == 0)
+    my, mx = np.where(mouths)
+    for i, (y, x) in enumerate(zip(my.tolist(), mx.tolist())):
+        labels[y * w + x] = i
+    print(f"  {len(my)} stream mouths")
+    flat_fdr = fdr.ravel()
+    flat_labels = labels
+    # ascending filled: a cell's downstream neighbour is strictly lower, so it is
+    # labelled before the cell that copies from it (flow_accumulation uses the
+    # opposite order because it pushes downstream instead of pulling)
+    order = np.argsort(filled, axis=None)
+    valid = land.ravel()
+    for idx in order:
+        if not valid[idx]:
+            continue
+        code = flat_fdr[idx]
+        if not code:
+            continue  # mouth (seeded) or non-stream coast outlet (stays -1)
+        dy, dx = OFFSETS[CODES.index(code)]
+        y, x = divmod(idx, w)
+        ny, nx = y + dy, x + dx
+        if 0 <= ny < h and 0 <= nx < w:
+            flat_labels[idx] = flat_labels[ny * w + nx]
+    return labels.reshape(h, w)
+
+
+def mask_rings(mask: np.ndarray) -> list[list[tuple[int, int]]]:
+    """Boundary rings of a bool mask: collect directed boundary edges (interior on the
+    right, y-down grid coords) and stitch them into closed rings, skipping collinear
+    vertices. Pinch corners may split the boundary into several rings — all are outers."""
+    h, w = mask.shape
+    M = np.zeros((h + 2, w + 2), dtype=bool)
+    M[1:-1, 1:-1] = mask
+    c = M[1:-1, 1:-1]
+    conds = [
+        (c & ~M[:-2, 1:-1], lambda y, x: ((x, y), (x + 1, y))),
+        (c & ~M[1:-1, 2:], lambda y, x: ((x + 1, y), (x + 1, y + 1))),
+        (c & ~M[2:, 1:-1], lambda y, x: ((x + 1, y + 1), (x, y + 1))),
+        (c & ~M[1:-1, :-2], lambda y, x: ((x, y + 1), (x, y))),
+    ]
+    edges: dict[tuple[int, int], list[tuple[int, int]]] = {}
+    for cond, seg in conds:
+        ys, xs = np.where(cond)
+        for y, x in zip(ys.tolist(), xs.tolist()):
+            a, b = seg(y, x)
+            edges.setdefault(a, []).append(b)
+
+    rings: list[list[tuple[int, int]]] = []
+    while edges:
+        start, outs = next(iter(edges.items()))
+        cur = outs.pop()
+        if not outs:
+            del edges[start]
+        ring = [start]
+        while cur != start:
+            ring.append(cur)
+            outs = edges[cur]
+            nxt = outs.pop()
+            if not outs:
+                del edges[cur]
+            (py, px), (ay, ax) = ring[-2], ring[-1]
+            if ay - py == nxt[0] - ay and ax - px == nxt[1] - ax:
+                ring[-1] = nxt
+            else:
+                ring.append(nxt)
+            cur = nxt
+        rings.append(ring)
+    return rings
+
+
+def watersheds_geojson(labels: np.ndarray, dem: np.ndarray, bbox) -> None:
+    west, south, east, north = bbox
+    h, w = dem.shape
+    dlat = (north - south) / h
+    dlon = (east - west) / w
+    cell_area = dlat * 110_540 * dlon * 111_320 * math.cos(math.radians((north + south) / 2))
+
+    ids = np.unique(labels)
+    ids = ids[ids >= 0]
+    sizes = [(int((labels == i).sum()), i) for i in ids.tolist()]
+    sizes.sort(reverse=True)
+
+    features = []
+    for rank, (cells, lid) in enumerate(sizes, 1):
+        if cells < 100:
+            break
+        mask = labels == lid
+        ys, xs = np.where(mask)
+        r0, r1, c0, c1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+        rings = mask_rings(mask[r0:r1, c0:c1])
+
+        def ring_ll(ring):
+            coords = [[round(west + (cx + c0) * dlon, 4), round(north - (cy + r0) * dlat, 4)] for cy, cx in ring]
+            coords.append(coords[0])
+            return coords
+
+        polys = [ring_ll(r) for r in rings]
+        geom = {"type": "Polygon", "coordinates": [polys[0]]} if len(polys) == 1 else {"type": "MultiPolygon", "coordinates": [[p] for p in polys]}
+        features.append({
+            "type": "Feature",
+            "properties": {
+                "name": f"Catchment {rank:02d}",
+                "source": "DEMNAS D8 derived",
+                "areaKm2": round(cells * cell_area / 1e6, 1),
+            },
+            "geometry": geom,
+        })
+    fc = {"type": "FeatureCollection", "features": features}
+    WATERSHEDS.write_text(json.dumps(fc))
+    print(f"wrote {WATERSHEDS} ({len(features)} catchments)")
+
+
 def main() -> None:
     dem = load_dem()
     print("filling sinks...")
@@ -177,6 +300,9 @@ def main() -> None:
     bbox = (124.2, -2.35, 125.4, -1.15)
     write_fdr_png(fdr, acc, dem)
     drainage_geojson(fdr, acc, dem, bbox)
+    print("labeling catchments...")
+    labels = label_catchments(filled, fdr, acc, dem)
+    watersheds_geojson(labels, dem, bbox)
     print(f"max accumulation: {acc.max():.0f} cells")
 
 

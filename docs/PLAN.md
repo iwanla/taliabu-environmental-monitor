@@ -805,7 +805,7 @@ Avoid dynamic DEM processing in Worker.
 
 ## Status
 
-**In progress** — started 2026-09-16
+**Complete** — started and finished 2026-09-16
 
 - Source DEM: DEMNAS via BIG ImageServer `exportImage` (geoservices.big.go.id) — verified live; 2000×2000 px (~66 m/px) over bbox [124.2, -2.35, 125.4, -1.15]. NOTE: server menghasilkan export rusak pada size=4000 (p99 = 0 m) — gunakan 2000. DEMNAS portal tanahair.indonesia.go.id dead; AWS terrarium tiles terbukti jalan sebagai fallback.
 - `scripts/terrain/preprocess.py` (Python, one-time preprocessing — bukan Worker): fetch tif, filter nodata/garbage spikes (nilai di luar [-100, 1700] m) + laut (<= 0.5 m) → alpha, tulis `public/data/terrain/{elevation,slope}.png` + `terrain.json`; slope via Horn 3×3 (numpy). Verified: max elev 1393 m (puncak Taliabu), slope max ~50°.
@@ -814,7 +814,11 @@ Avoid dynamic DEM processing in Worker.
 - Dataset metadata `terrain-dem` di datasets.json.
 - Fase B (D8 hydrology) — selesai: `scripts/terrain/hydro.py` (priority-flood epsilon fill, D8 steepest descent, flow accumulation; 3 bug yang ditemukan: salah seed ocean-adjacency, konvensi tanda steepest descent terbalik, slice mapping tetangga terbalik — semua fixed dan verified). Output: `fdr.png` (R=D8 code, G=log accumulation, alpha=land) + `drainage.geojson` (90 stream, threshold ~9 km²). Validasi: 87/90 stream midpoint <650 m dari sungai BIG.
 - Layer `Derived drainage` (hydrology, dashed teal) + metrik `Downstream flow` di AOI inspector (trace D8 dari centroid AOI via `terrain.ts`, garis dashed amber di peta). Browser-verified: AOI 1.008 ha → downstream 9,2 km to outlet; drainage toggle OK; console bersih.
-- Pending (deferred): watershed delineation per mouth (derived-watersheds.geojson) — official BIG watersheds sudah memenuhi kriteria; tambah kalau perlu catchment konsisten-DEM.
+- Layer `Derived catchments` (hydrology, fill tan + dashed outline): delineation per muara dari model D8 yang sama — `label_catchments()` menyebar label tiap stream mouth ke hulu (urutan filled ascending; catatan: urutan descending flow_accumulation terbalik arah untuk label-copy — propagasi hanya jalan 1 langkah kalau keliru) + `mask_rings()` polygonize mask via directed edge stitching (tanpa shapely). 48 catchments, ~2.216 km² tercakup; 8 MultiPolygon dari pinch corner.
+
+## Status
+
+**Complete** — 2026-09-16. Semua deliverables: terrain layer, slope layer, watershed (resmi BIG + derived), downstream context.
 
 # Phase 12 — Coastal and Sediment Monitoring
 
