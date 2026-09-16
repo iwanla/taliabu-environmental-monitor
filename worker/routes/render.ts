@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { renderScene, getEvalscript } from "../services/sentinel-hub";
 
 type Env = {
+  DB: D1Database;
   COPERNICUS_CLIENT_ID: string;
   COPERNICUS_CLIENT_SECRET: string;
 };
@@ -42,6 +43,11 @@ render.post("/render", async (c) => {
   const from = body.from ?? new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
   const to = body.to ?? now.toISOString().slice(0, 10);
 
+  const params = JSON.stringify({ bbox, from, to, maxCloudCoverage: body.maxCloudCoverage ?? 20, width: body.width ?? 1024, height: body.height ?? 1024 });
+  const run = await c.env.DB.prepare(`INSERT INTO analysis_runs (type, params) VALUES (?, ?)`)
+    .bind(type, params)
+    .run<{ meta: { last_row_id: number } }>();
+
   try {
     const imageStream = await renderScene(clientId, clientSecret, {
       bbox: bbox as [number, number, number, number],
@@ -54,6 +60,10 @@ render.post("/render", async (c) => {
       evalscript: body.evalscript,
     });
 
+    await c.env.DB.prepare(`UPDATE analysis_runs SET status = 'done', finished_at = datetime('now') WHERE id = ?`)
+      .bind(run.meta.last_row_id)
+      .run();
+
     return new Response(imageStream, {
       headers: {
         "Content-Type": "image/png",
@@ -62,6 +72,9 @@ render.post("/render", async (c) => {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
+    await c.env.DB.prepare(`UPDATE analysis_runs SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`)
+      .bind(msg, run.meta.last_row_id)
+      .run();
     return c.json({ error: "RENDER_ERROR", message: msg, retryable: true }, 502);
   }
 });
