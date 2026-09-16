@@ -114,6 +114,16 @@ export const staticLayers: MapLayerDefinition[] = [
   },
 
   {
+    id: "scl",
+    name: "Scene Classification",
+    sub: "SCL · quality/diagnostic",
+    category: "environment",
+    type: "raster",
+    defaultVisible: false,
+    opacity: 0.85,
+    source: { type: "raster", evalscriptKey: "scl" },
+  },
+  {
     id: "ndvi",
     name: "NDVI",
     sub: "Vegetation · B08, B04",
@@ -155,8 +165,8 @@ export const staticLayers: MapLayerDefinition[] = [
   },
   {
     id: "bare-soil",
-    name: "Bare Soil",
-    sub: "Bare soil · B12, B08A, B04",
+    name: "SWIR",
+    sub: "Bare soil/analysis · B12, B11, B04",
     category: "environment",
     type: "raster",
     defaultVisible: false,

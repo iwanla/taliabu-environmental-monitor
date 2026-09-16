@@ -48,6 +48,35 @@ function evaluatePixel(samples) {
   return imgVals;
 }`,
   // Copernicus Browser NDWI default output: green ramp on -val, blue ramp on val^(1/4)
+  // Copernicus Browser SCL script, verbatim
+  scl: `//VERSION=3
+function RGBToColor(r, g, b, dataMask) {
+  return [r / 255, g / 255, b / 255, dataMask];
+}
+function setup() {
+  return {
+    input: ["SCL", "dataMask"],
+    output: { bands: 4 }
+  };
+}
+function evaluatePixel(samples) {
+  const SCL = samples.SCL;
+  switch (SCL) {
+    case 0: return RGBToColor(0, 0, 0, samples.dataMask);
+    case 1: return RGBToColor(255, 0, 0, samples.dataMask);
+    case 2: return RGBToColor(47, 47, 47, samples.dataMask);
+    case 3: return RGBToColor(100, 50, 0, samples.dataMask);
+    case 4: return RGBToColor(0, 160, 0, samples.dataMask);
+    case 5: return RGBToColor(255, 230, 90, samples.dataMask);
+    case 6: return RGBToColor(0, 0, 255, samples.dataMask);
+    case 7: return RGBToColor(128, 128, 128, samples.dataMask);
+    case 8: return RGBToColor(192, 192, 192, samples.dataMask);
+    case 9: return RGBToColor(255, 255, 255, samples.dataMask);
+    case 10: return RGBToColor(100, 200, 255, samples.dataMask);
+    case 11: return RGBToColor(255, 150, 255, samples.dataMask);
+    default: return RGBToColor(0, 0, 0, samples.dataMask);
+  }
+}`,
   ndwi: `//VERSION=3
 function setup() {
   return {
@@ -93,40 +122,52 @@ function setup() {
 function evaluatePixel(s) {
   return [2.5 * s.B08, 2.5 * s.B04, 2.5 * s.B03, s.dataMask];
 }`,
+  // Copernicus Browser SWIR composite, verbatim
   "bare-soil": `//VERSION=3
+let minVal = 0.0;
+let maxVal = 0.4;
+let viz = new HighlightCompressVisualizer(minVal, maxVal);
 function setup() {
   return {
-    input: ["B12", "B08A", "B04", "dataMask"],
+    input: ["B12", "B11", "B04", "dataMask"],
     output: { bands: 4 }
   };
 }
-function evaluatePixel(s) {
-  return [2.5 * s.B12, 2.5 * s.B08A, 2.5 * s.B04, s.dataMask];
+function evaluatePixel(samples) {
+  let val = [samples.B12, samples.B11, samples.B04, samples.dataMask];
+  return viz.processList(val);
 }`,
-  // Raw metric values encoded as R = (value + 1) / 2, alpha = dataMask.
+  // Raw metric values encoded as R = (value + 1) / 2, alpha = dataMask * SCL validity.
+  // Invalid classes (0 no-data, 1 saturated, 3 shadow, 7 unclassified, 8/9 cloud, 10 cirrus) -> alpha 0.
   // Client-side change detection decodes these back to NDVI/MNDWI and thresholds the delta.
   "ndvi-raw": `//VERSION=3
 function setup() {
   return {
-    input: ["B08", "B04", "dataMask"],
+    input: ["B08", "B04", "SCL", "dataMask"],
     output: { bands: 4 }
   };
 }
+function isValid(scl) {
+  return scl != 0 && scl != 1 && scl != 3 && scl != 7 && scl != 8 && scl != 9 && scl != 10;
+}
 function evaluatePixel(s) {
   var ndvi = (s.B08 - s.B04) / (s.B08 + s.B04 + 1e-10);
-  return [(ndvi + 1) / 2, 0, 0, s.dataMask];
+  return [(ndvi + 1) / 2, 0, 0, s.dataMask * (isValid(s.SCL) ? 1 : 0)];
 }
 `,
   "mndwi-raw": `//VERSION=3
 function setup() {
   return {
-    input: ["B03", "B11", "dataMask"],
+    input: ["B03", "B11", "SCL", "dataMask"],
     output: { bands: 4 }
   };
 }
+function isValid(scl) {
+  return scl != 0 && scl != 1 && scl != 3 && scl != 7 && scl != 8 && scl != 9 && scl != 10;
+}
 function evaluatePixel(s) {
   var mndwi = (s.B03 - s.B11) / (s.B03 + s.B11 + 1e-10);
-  return [(mndwi + 1) / 2, 0, 0, s.dataMask];
+  return [(mndwi + 1) / 2, 0, 0, s.dataMask * (isValid(s.SCL) ? 1 : 0)];
 }
 `,
   // SAR raw: VV -> R, VH -> G as dB over [-30, 0], encoded to 0..1. Bands arrive as LINEAR sigma0 power.

@@ -524,6 +524,10 @@ Layer panel memiliki environmental raster layers.
 
 ## Status
 
+- Visual palettes NDVI/NDWI/SCL/SWIR matched verbatim to Copernicus Browser custom scripts; SWIR replaces old bare-soil composite (B12, B11, B04 + HighlightCompressVisualizer).
+- SCL added as diagnostic layer (environment group) — Sen2Cor class palette; bukan pengganti indeks.
+- SCL quality mask in change detection: `ndvi-raw`/`mndwi-raw` alpha = dataMask * isValid(SCL); invalid classes 0,1,3,7,8,9,10 dibuang (pola mosaic Copernicus) → confidence = % pixel clear di dalam AOI.
+
 **Completed** — 2026-09-15
 
 - 6 raster layers: NDVI, NDWI, MNDWI, False Color, Bare Soil, SAR
