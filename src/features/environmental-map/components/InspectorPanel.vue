@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, computed } from "vue";
 import { useDatasetMetadata } from "../composables/useDatasetMetadata";
 import { analyzeAoi, type AoiAnalysis } from "../composables/useAoiAnalysis";
 import { CHANGE_RULES, type ChangeResult, type ChangeType } from "../composables/changeDetection";
+import { ALERT_LABELS, alertLabel, DEFAULT_THRESHOLDS, evaluateAlerts, type AlertThresholds, type EnvAlert } from "../composables/alerts";
 
 const props = defineProps<{
   feature: GeoJSON.Feature | null;
@@ -15,7 +16,7 @@ const props = defineProps<{
   changeError?: string | null;
 }>();
 
-const emit = defineEmits<{ clearAoi: []; runChange: [payload: { type: ChangeType; dateA: string; dateB: string }] }>();
+const emit = defineEmits<{ clearAoi: []; runChange: [payload: { type: ChangeType; dateA: string; dateB: string }]; focusAlert: [bbox: [number, number, number, number]] }>();
 
 const changeType = ref<ChangeType>("vegetation-loss");
 const dateA = ref("");
@@ -38,7 +39,10 @@ function runChange() {
 
 const { load, getByLayerId } = useDatasetMetadata();
 
-onMounted(() => load());
+onMounted(() => {
+  load();
+  loadAlerts();
+});
 
 const analysis = ref<AoiAnalysis | null>(null);
 const analyzing = ref(false);
@@ -56,6 +60,71 @@ watch(() => props.aoi, async (polygon) => {
   }
   analyzing.value = false;
 });
+
+const thresholds = ref<AlertThresholds>({ ...DEFAULT_THRESHOLDS });
+const alerts = computed<EnvAlert[]>(() =>
+  props.change && props.aoi && analysis.value && !props.changeLoading
+    ? evaluateAlerts(props.change, analysis.value, props.aoi, thresholds.value)
+    : [],
+);
+const alertsBlocked = computed(() => !!props.change && props.change.coverage < 0.3);
+
+const saving = ref(false);
+const savedCount = ref(0);
+const saveError = ref<string | null>(null);
+watch(alerts, () => {
+  savedCount.value = 0;
+  saveError.value = null;
+});
+
+interface SavedAlert {
+  id: number;
+  kind: string;
+  severity: string;
+  aoi: GeoJSON.Polygon | null;
+  evidence: { bbox: [number, number, number, number]; dateB: string; changedHa: number } & Record<string, unknown>;
+  createdAt: string;
+}
+const logAlerts = ref<SavedAlert[]>([]);
+const logKind = ref("");
+
+async function loadAlerts() {
+  try {
+    const q = logKind.value ? `&kind=${encodeURIComponent(logKind.value)}` : "";
+    const res = await fetch(`/api/alerts?limit=50${q}`);
+    logAlerts.value = (await res.json()).alerts ?? [];
+  } catch {
+    logAlerts.value = [];
+  }
+}
+
+watch(logKind, loadAlerts);
+
+async function saveAlerts() {
+  if (!alerts.value.length) return;
+  saving.value = true;
+  saveError.value = null;
+  try {
+    const res = await fetch("/api/alerts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alerts: alerts.value }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    savedCount.value = alerts.value.length;
+    await loadAlerts();
+  } catch (err) {
+    saveError.value = err instanceof Error ? err.message : "Save failed";
+  }
+  saving.value = false;
+}
+
+function alertDetail(a: EnvAlert): string {
+  const parts = [formatHa(a.evidence.changedHa), `${a.evidence.dateA} → ${a.evidence.dateB}`];
+  const d = a.evidence.context?.distanceM;
+  if (typeof d === "number") parts.push(formatM(d));
+  return parts.join(" · ");
+}
 
 function formatKey(key: string): string {
   return key
@@ -202,6 +271,29 @@ function formatHa(ha?: number): string {
         <div class="metric-row"><span>Method</span><span class="v">{{ CHANGE_RULES[change.type].label }}</span></div>
         <div class="metric-row"><span>Source</span><span class="v">Sentinel-2 L2A</span></div>
         <p class="disclaimer">Remote-sensing proxy, not a field measurement or legal conclusion.</p>
+
+        <div class="meta-heading">Alerts</div>
+        <div class="alert-thresholds">
+          <label>Veg loss ≥ ha<input v-model.number="thresholds.vegLossHa" type="number" min="0" step="1" /></label>
+          <label>Distance ≤ m<input v-model.number="thresholds.distanceM" type="number" min="0" step="100" /></label>
+        </div>
+        <template v-if="alerts.length">
+          <div v-for="(a, i) in alerts" :key="i" class="alert-item" :title="a.evidence.rule">
+            <span class="badge" :class="a.severity === 'high' ? 'badge-high' : 'badge-medium'">{{ a.severity }}</span>
+            <div class="alert-body">
+              <strong>{{ alertLabel(a.kind) }}</strong>
+              <span class="alert-detail">{{ alertDetail(a) }}</span>
+            </div>
+          </div>
+          <button class="aoi-clear" :disabled="saving" @click="saveAlerts">
+            {{ saving ? "Saving…" : savedCount ? `Saved to log (${savedCount})` : "Save to alert log" }}
+          </button>
+          <div v-if="saveError" class="metric-row"><span>Error</span><span class="v">{{ saveError }}</span></div>
+        </template>
+        <div v-else class="metric-row">
+          <span>Result</span>
+          <span class="v">{{ alertsBlocked ? "Too cloudy to judge (<30% clear)" : "No threshold met" }}</span>
+        </div>
       </template>
 
       <button class="aoi-clear" @click="emit('clearAoi')">Clear AOI</button>
@@ -211,6 +303,23 @@ function formatHa(ha?: number): string {
       <h5>No AOI selected</h5>
       <div class="sub">Draw an area on the map to view statistics</div>
       <p>Click "Draw AOI" in the layers panel, click on the map to trace a polygon, then double-click to finish. Escape cancels.</p>
+    </div>
+
+    <div class="insp-block">
+      <h5>Alert log</h5>
+      <div class="sub">Saved monitoring events</div>
+      <select v-model="logKind" class="change-input" aria-label="Filter alerts">
+        <option value="">All kinds</option>
+        <option v-for="(label, kind) in ALERT_LABELS" :key="kind" :value="kind">{{ label }}</option>
+      </select>
+      <template v-if="logAlerts.length">
+        <button v-for="a in logAlerts" :key="a.id" class="alert-log-row" :title="String(a.evidence.rule ?? '')" @click="emit('focusAlert', a.evidence.bbox)">
+          <span class="dot" :class="a.severity"></span>
+          <span class="alert-log-kind">{{ alertLabel(a.kind) }}</span>
+          <span class="alert-log-meta">{{ formatHa(a.evidence.changedHa) }} · {{ a.evidence.dateB }}</span>
+        </button>
+      </template>
+      <div v-else class="metric-row"><span>Entries</span><span class="v">0</span></div>
     </div>
   </aside>
 </template>
@@ -281,6 +390,111 @@ function formatHa(ha?: number): string {
 .badge-low {
   background: #F3E1DB;
   color: var(--status-low);
+}
+
+.badge-high {
+  background: #F3DAD4;
+  color: var(--status-low);
+}
+
+.badge-medium {
+  background: #F0E6CE;
+  color: var(--status-medium);
+}
+
+.alert-thresholds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.alert-thresholds label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.alert-thresholds input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 5px 6px;
+  margin-top: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper-sunk);
+  color: var(--ink);
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.alert-item .badge {
+  margin-top: 1px;
+}
+
+.alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+}
+
+.alert-detail {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.alert-log-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 0;
+  border: none;
+  border-top: 1px solid var(--line);
+  background: none;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.alert-log-row:hover .alert-log-kind {
+  text-decoration: underline;
+}
+
+.alert-log-row .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.alert-log-row .dot.high {
+  background: var(--status-low);
+}
+
+.alert-log-row .dot.medium {
+  background: var(--status-medium);
+}
+
+.alert-log-kind {
+  flex: 1;
+}
+
+.alert-log-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
 }
 
 .badge .dot {

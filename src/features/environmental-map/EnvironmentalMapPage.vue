@@ -43,6 +43,7 @@ const camera = ref<MapViewCamera | null>(null);
 const drawMode = ref(false);
 const aoi = ref<GeoJSON.Polygon | null>(null);
 const aoiError = ref<string | null>(null);
+const focusBounds = ref<[number, number, number, number] | null>(null);
 
 const change = ref<ChangeResult | null>(null);
 const changeLoading = ref(false);
@@ -336,6 +337,7 @@ onMounted(() => {
         :basemap-mode="basemapMode"
         :change-overlay="change ? { url: change.url, bbox: change.bbox } : null"
         :initial-view="camera ?? undefined"
+        :focus-bounds="focusBounds"
         :draw-mode="drawMode"
         :aoi="aoi"
         @feature-selected="(f, l) => { selectedFeature = f; selectedLayerId = l; }"
@@ -362,6 +364,7 @@ onMounted(() => {
       :change-error="changeError"
       @clear-aoi="clearAoi"
       @run-change="handleRunChange"
+      @focus-alert="(b) => (focusBounds = b)"
     />
     <Timeline
        v-if="basemapMode === 'satellite'"

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import scenes from "./routes/scenes";
 import render from "./routes/render";
+import alerts from "./routes/alerts";
 
 type Env = {
   ASSETS: Fetcher;
@@ -24,6 +25,7 @@ app.get("/api/health", (c) => {
 
 app.route("/api", scenes);
 app.route("/api", render);
+app.route("/api", alerts);
 
 app.all("/api/*", (c) => {
   return c.json({ error: "Not found" }, 404);

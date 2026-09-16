@@ -42,6 +42,7 @@ const props = defineProps<{
   basemapMode: BasemapMode;
   changeOverlay?: { url: string; bbox: [number, number, number, number] } | null;
   initialView?: MapViewCamera;
+  focusBounds?: [number, number, number, number] | null;
   drawMode?: boolean;
   aoi?: GeoJSON.Polygon | null;
 }>();
@@ -590,6 +591,13 @@ watch(() => props.drawMode, (mode) => {
 });
 
 watch(() => props.aoi, renderAoi);
+
+watch(
+  () => props.focusBounds,
+  (b) => {
+    if (b && map) map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 80, maxZoom: 13 });
+  },
+);
 
 watch(
   () => props.aoi,
