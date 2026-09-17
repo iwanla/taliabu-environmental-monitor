@@ -108,7 +108,6 @@ const shortcuts = [
 
 <style scoped>
 .timeline {
-  grid-area: timeline;
   background: var(--paper-raised);
   border-top: 1px solid var(--line);
   padding: 10px 20px 10px;
@@ -294,4 +293,38 @@ const shortcuts = [
   color: var(--ink-soft);
 }
 
+@media (max-width: 768px) {
+  .timeline {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .shortcuts {
+    order: -1;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .shortcuts::-webkit-scrollbar {
+    display: none;
+  }
+
+  .shortcut-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .scene-chip {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .date-readout {
+    min-width: auto;
+    font-size: 11px;
+  }
+}
 </style>

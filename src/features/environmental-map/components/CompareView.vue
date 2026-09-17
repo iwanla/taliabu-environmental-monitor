@@ -327,4 +327,29 @@ onUnmounted(() => {
   color: var(--cat-satellite, #4a7c59);
   letter-spacing: -1px;
 }
+
+@media (max-width: 768px) {
+  .compare-labels {
+    top: 8px;
+    gap: 12px;
+  }
+
+  .compare-labels span {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .compare-handle {
+    width: 50px;
+  }
+
+  .handle-grip {
+    width: 36px;
+    height: 36px;
+  }
+
+  .handle-grip span {
+    font-size: 12px;
+  }
+}
 </style>

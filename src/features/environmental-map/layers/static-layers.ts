@@ -26,7 +26,7 @@ export const staticLayers: MapLayerDefinition[] = [
     description: "River network lines used for proximity analysis (distance to nearest river in the AOI panel).",
     category: "hydrology",
     type: "vector",
-    defaultVisible: true,
+    defaultVisible: false,
     opacity: 0.9,
     source: { type: "geojson", url: "/data/hydrology/rivers.geojson" },
     layerType: "line",

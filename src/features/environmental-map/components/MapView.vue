@@ -825,4 +825,35 @@ watch(
   font-size: 10.5px;
   color: #E7E9DD;
 }
+
+@media (max-width: 768px) {
+  .map-topleft {
+    top: 8px;
+    left: 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .chip {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .map-controls {
+    top: 8px;
+    right: 8px;
+    gap: 4px;
+  }
+
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .map-bottom {
+    left: 8px;
+    bottom: 8px;
+  }
+}
 </style>

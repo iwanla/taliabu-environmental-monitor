@@ -371,4 +371,10 @@ button.name {
   color: var(--ink);
   border-color: var(--line-strong);
 }
+
+@media (max-width: 768px) {
+  .layers {
+    border-right: none;
+  }
+}
 </style>

@@ -64,10 +64,10 @@ const allGroups = computed(() => {
   <div class="legend-float">
     <div class="legend-title">Legend</div>
     <template v-for="group in allGroups" :key="group.id">
-      <button class="group-title" type="button" :aria-expanded="!collapsed[group.id]" @click="collapsed[group.id] = !collapsed[group.id]">
-        <span>{{ collapsed[group.id] ? "▸" : "▾" }}</span>{{ group.title }}
+      <button class="group-title" type="button" :aria-expanded="!!collapsed[group.id]" @click="collapsed[group.id] = !collapsed[group.id]">
+        <span>{{ collapsed[group.id] ? "▾" : "▸" }}</span>{{ group.title }}
       </button>
-      <div v-if="!collapsed[group.id]" class="group-items">
+      <div v-if="collapsed[group.id]" class="group-items">
         <div v-for="(item, i) in group.items" :key="i" class="row">
           <span class="sw" :class="{ ramp: item.color.startsWith('linear-gradient') }" :style="{ background: item.color }"></span>{{ item.label }}
         </div>
@@ -133,5 +133,14 @@ const allGroups = computed(() => {
   width: 84px;
   height: 9px;
   border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .legend-float {
+    min-width: 120px;
+    max-height: 200px;
+    padding: 8px 10px;
+    font-size: 10.5px;
+  }
 }
 </style>

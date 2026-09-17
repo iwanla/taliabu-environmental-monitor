@@ -29,6 +29,10 @@ const basemapMode = ref<BasemapMode>("vector");
 const miningImpact = ref(false);
 const guideOpen = ref(false);
 
+// ponytail: mobile panel toggles — kept simple, no drawer lib needed
+const mobileLayersOpen = ref(false);
+const mobileInspectorOpen = ref(false);
+
 const MINING_IMPACT_ON = ["mining-iup", "ndvi", "rivers", "watersheds", "coastline", "settlement-areas"];
 
 function toggleMiningImpact() {
@@ -371,8 +375,24 @@ onMounted(() => {
 
 <template>
   <div class="app">
-    <AppHeader :latest-acquisition="scenes[0] ?? null" @open-guide="guideOpen = true" />
-    <LayerPanel :draw-mode="drawMode" :basemap-mode="basemapMode" :mining-impact="miningImpact" @draw-aoi="toggleDrawAoi" @basemap-changed="handleBasemapChanged" @toggle-mining-impact="toggleMiningImpact" />
+    <AppHeader
+      :latest-acquisition="scenes[0] ?? null"
+      :mobile-layers-open="mobileLayersOpen"
+      :mobile-inspector-open="mobileInspectorOpen"
+      @open-guide="guideOpen = true"
+      @toggle-mobile-layers="mobileLayersOpen = !mobileLayersOpen"
+      @toggle-mobile-inspector="mobileInspectorOpen = !mobileInspectorOpen"
+    />
+    <LayerPanel
+      class="layer-panel-desktop"
+      :class="{ 'mobile-open': mobileLayersOpen }"
+      :draw-mode="drawMode"
+      :basemap-mode="basemapMode"
+      :mining-impact="miningImpact"
+      @draw-aoi="toggleDrawAoi"
+      @basemap-changed="handleBasemapChanged"
+      @toggle-mining-impact="toggleMiningImpact"
+    />
     <div class="map-area">
       <MapView
         v-if="!compareMode"
@@ -398,6 +418,8 @@ onMounted(() => {
       />
     </div>
     <InspectorPanel
+      class="inspector-panel-desktop"
+      :class="{ 'mobile-open': mobileInspectorOpen }"
       :feature="selectedFeature"
       :layer-id="selectedLayerId"
       :aoi="aoi"
@@ -416,28 +438,30 @@ onMounted(() => {
       @unfocus-alert="handleUnfocusAlert"
       @export-png="handleExportPng"
     />
-    <Timeline
-       v-if="basemapMode === 'satellite'"
-      :scenes="scenes"
-      :selected-scene="selectedScene"
-      :active-preset="activePreset"
-      :compare-mode="compareMode"
-      :scene-b="sceneB"
-      @scene-selected="handleSceneSelected"
-      @shortcut-selected="handleShortcut"
-      @toggle-compare="toggleCompare"
-      @toggle-compare-mode="toggleCompareMode"
-    />
-    <MetricsRow
-      :result="analyticsResult"
-      :loading="analyticsLoading"
-      :error="analyticsError"
-      :scope="analyticsScope"
-      :scene-date="selectedScene?.date?.slice(0, 10) ?? null"
-      :has-aoi="!!aoi"
-      :permit-name="selectedLayerId?.replace(/-layer$/, '') === 'mining-iup' ? String(selectedFeature?.properties?.name ?? '') || null : null"
-      @change-scope="(s) => (analyticsScope = s)"
-    />
+    <div class="bottom-bar">
+      <Timeline
+         v-if="basemapMode === 'satellite'"
+        :scenes="scenes"
+        :selected-scene="selectedScene"
+        :active-preset="activePreset"
+        :compare-mode="compareMode"
+        :scene-b="sceneB"
+        @scene-selected="handleSceneSelected"
+        @shortcut-selected="handleShortcut"
+        @toggle-compare="toggleCompare"
+        @toggle-compare-mode="toggleCompareMode"
+      />
+      <MetricsRow
+        :result="analyticsResult"
+        :loading="analyticsLoading"
+        :error="analyticsError"
+        :scope="analyticsScope"
+        :scene-date="selectedScene?.date?.slice(0, 10) ?? null"
+        :has-aoi="!!aoi"
+        :permit-name="selectedLayerId?.replace(/-layer$/, '') === 'mining-iup' ? String(selectedFeature?.properties?.name ?? '') || null : null"
+        @change-scope="(s) => (analyticsScope = s)"
+      />
+    </div>
     <GuidelineDrawer :open="guideOpen" :markdown-en="guidelineMarkdown" :markdown-id="guidelineMarkdownId" @close="guideOpen = false" />
   </div>
 </template>
@@ -448,12 +472,11 @@ onMounted(() => {
 .app {
   display: grid;
   grid-template-columns: 252px 1fr 296px;
-  grid-template-rows: 48px minmax(360px, 1fr) auto auto;
+  grid-template-rows: 48px minmax(360px, 1fr) auto;
   grid-template-areas:
     "header header header"
     "layers map inspector"
-    "timeline timeline timeline"
-    "metrics metrics metrics";
+    "bottom bottom bottom";
   height: 100vh;
 }
 
@@ -463,18 +486,107 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.bottom-bar {
+  grid-area: bottom;
+}
+
+/* ponytail: tablet breakpoint — panels as overlays */
 @media (max-width: 1080px) {
   .app {
     grid-template-columns: 1fr;
-    grid-template-rows: 48px 280px auto auto auto auto;
+    grid-template-rows: 48px 1fr auto;
     grid-template-areas:
       "header"
       "map"
-      "layers"
-      "inspector"
-      "timeline"
-      "metrics";
-    height: auto;
+      "bottom";
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .layer-panel-desktop,
+  .inspector-panel-desktop {
+    position: fixed;
+    top: 48px;
+    bottom: 0;
+    z-index: 100;
+    grid-area: auto;
+    transition: transform 0.2s ease;
+  }
+
+  .layer-panel-desktop {
+    left: 0;
+    transform: translateX(-100%);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .layer-panel-desktop.mobile-open {
+    transform: translateX(0);
+  }
+
+  .inspector-panel-desktop {
+    right: 0;
+    transform: translateX(100%);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .inspector-panel-desktop.mobile-open {
+    transform: translateX(0);
+  }
+}
+
+/* ponytail: mobile breakpoint — panels as overlays, bottom scrollable */
+@media (max-width: 768px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 48px 1fr auto;
+    grid-template-areas:
+      "header"
+      "map"
+      "bottom";
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .layer-panel-desktop,
+  .inspector-panel-desktop {
+    position: fixed;
+    top: 48px;
+    bottom: 0;
+    width: 280px;
+    z-index: 100;
+    grid-area: auto;
+    transition: transform 0.2s ease;
+  }
+
+  .layer-panel-desktop {
+    left: 0;
+    transform: translateX(-100%);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .layer-panel-desktop.mobile-open {
+    transform: translateX(0);
+  }
+
+  .inspector-panel-desktop {
+    right: 0;
+    width: 300px;
+    transform: translateX(100%);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .inspector-panel-desktop.mobile-open {
+    transform: translateX(0);
+  }
+
+  .map-area {
+    min-height: 0;
+  }
+
+  .bottom-bar {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 40vh;
   }
 }
 </style>

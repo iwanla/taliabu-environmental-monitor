@@ -770,4 +770,10 @@ async function copyShare() {
   opacity: 0.35;
   cursor: default;
 }
+
+@media (max-width: 768px) {
+  .inspector {
+    border-left: none;
+  }
+}
 </style>

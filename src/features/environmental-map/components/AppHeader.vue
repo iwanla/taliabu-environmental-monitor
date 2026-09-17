@@ -3,16 +3,32 @@ import type { SatelliteAcquisition } from "./MapView.vue";
 
   defineProps<{
   latestAcquisition?: SatelliteAcquisition | null;
+  mobileLayersOpen?: boolean;
+  mobileInspectorOpen?: boolean;
 }>();
 
 defineEmits<{
   openGuide: [];
+  toggleMobileLayers: [];
+  toggleMobileInspector: [];
 }>();
 </script>
 
 <template>
   <header class="header">
-    <div class="brand"><span class="mark"></span><b>Taliabu Environmental Monitor</b></div>
+    <div class="header-left">
+      <button
+        class="mobile-toggle"
+        type="button"
+        aria-label="Toggle layers panel"
+        @click="$emit('toggleMobileLayers')"
+      >
+        <span class="hamburger" :class="{ open: mobileLayersOpen }">
+          <span></span><span></span><span></span>
+        </span>
+      </button>
+      <div class="brand"><span class="mark"></span><b>Taliabu Environmental Monitor</b></div>
+    </div>
     <div class="mid">
       <span>Latest acquisition</span>
       <template v-if="latestAcquisition">
@@ -22,7 +38,17 @@ defineEmits<{
       </template>
       <b v-else class="mono">Loading</b>
     </div>
-    <button class="btn btn-primary" type="button" @click="$emit('openGuide')">Guide</button>
+    <div class="header-right">
+      <button class="btn btn-primary" type="button" @click="$emit('openGuide')">Guide</button>
+      <button
+        class="mobile-toggle inspector-toggle"
+        type="button"
+        aria-label="Toggle inspector panel"
+        @click="$emit('toggleMobileInspector')"
+      >
+        <span class="info-icon" :class="{ open: mobileInspectorOpen }">i</span>
+      </button>
+    </div>
   </header>
 </template>
 
@@ -36,6 +62,13 @@ defineEmits<{
   background: var(--ink);
   color: #fff;
   border-bottom: 1px solid #0B140F;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .brand {
@@ -101,4 +134,67 @@ defineEmits<{
   outline-offset: 2px;
 }
 
+.mobile-toggle {
+  display: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 20px;
+}
+
+.hamburger span {
+  display: block;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.hamburger.open span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.open span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, .7);
+  font: 600 13px/1 var(--font-body);
+  color: rgba(255, 255, 255, .7);
+  transition: all 0.15s;
+}
+
+.info-icon.open {
+  background: var(--cat-environment);
+  border-color: var(--cat-environment);
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .mobile-toggle {
+    display: flex;
+  }
+
+  .mid {
+    display: none;
+  }
+}
 </style>

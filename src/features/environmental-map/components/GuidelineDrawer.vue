@@ -8,6 +8,7 @@ const props = defineProps<{
 }>();
 
 const language = ref<"en" | "id">("en");
+const guideContentScrollEnabled = ref(false);
 
 const emit = defineEmits<{
   close: [];
@@ -121,7 +122,13 @@ function closeOnEscape(event: KeyboardEvent) {
   if (event.key === "Escape") emit("close");
 }
 
+function handleGuideBodyScroll(event: Event) {
+  const body = event.currentTarget as HTMLElement;
+  guideContentScrollEnabled.value = body.scrollTop >= body.scrollHeight - body.clientHeight - 1;
+}
+
 watch(() => props.open, (open) => {
+  guideContentScrollEnabled.value = false;
   if (open) window.addEventListener("keydown", closeOnEscape);
   else window.removeEventListener("keydown", closeOnEscape);
 });
@@ -146,14 +153,18 @@ onBeforeUnmount(() => window.removeEventListener("keydown", closeOnEscape));
             <button class="guide-close" type="button" aria-label="Close guide" @click="emit('close')"><span aria-hidden="true">×</span></button>
           </div>
         </header>
-        <div class="guide-body">
+        <div class="guide-body" @scroll="handleGuideBodyScroll">
           <nav class="guide-toc" aria-label="Table of contents">
             <span class="toc-label">In this guide</span>
             <div class="toc-links">
               <a v-for="item in document.toc" :key="item.id" :class="`toc-level-${item.level}`" :href="`#${item.id}`">{{ item.label }}</a>
             </div>
           </nav>
-          <article class="guide-content" v-html="document.html"></article>
+          <article
+            class="guide-content"
+            :class="{ 'scroll-enabled': guideContentScrollEnabled }"
+            v-html="document.html"
+          ></article>
         </div>
       </aside>
     </div>
@@ -415,7 +426,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", closeOnEscape));
   transform: translateX(24px);
 }
 
-@media (max-width: 560px) {
+@media (max-width: 768px) {
   .guide-header,
   .guide-toc {
     padding-left: 20px;
@@ -423,19 +434,31 @@ onBeforeUnmount(() => window.removeEventListener("keydown", closeOnEscape));
   }
 
   .guide-body {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
+    display: block;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .guide-toc {
-    max-height: 38vh;
+    position: relative;
+    height: 35vh;
+    max-height: none;
+    overflow-y: auto;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
 
   .guide-content {
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    overflow-y: hidden;
     padding: 24px 20px 48px;
+  }
+
+  .guide-content.scroll-enabled {
+    overflow-y: auto;
   }
 
   .toc-level-1 {

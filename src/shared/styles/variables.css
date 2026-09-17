@@ -29,6 +29,10 @@
   --font-mono: 'IBM Plex Mono', monospace;
   --radius-sm: 3px;
   --radius-md: 5px;
+
+  /* ponytail: mobile breakpoints as CSS vars for media queries */
+  --bp-tablet: 768px;
+  --bp-mobile: 576px;
 }
 
 *,

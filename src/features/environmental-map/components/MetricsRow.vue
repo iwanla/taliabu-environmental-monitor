@@ -93,7 +93,6 @@ function ha(v: number): string {
 
 <style scoped>
 .metrics {
-  grid-area: metrics;
   background: var(--paper);
   border-top: 1px solid var(--line);
   padding: 14px 20px 18px;
@@ -215,5 +214,17 @@ function ha(v: number): string {
   margin: 0;
   font-size: 11.5px;
   color: var(--ink-soft);
+}
+
+@media (max-width: 768px) {
+  .metrics {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .trend-card {
+    min-height: auto;
+  }
 }
 </style>
