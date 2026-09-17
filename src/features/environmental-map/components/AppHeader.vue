@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import type { SatelliteAcquisition } from "./MapView.vue";
 
-defineProps<{
+  defineProps<{
   latestAcquisition?: SatelliteAcquisition | null;
+}>();
+
+defineEmits<{
+  openGuide: [];
 }>();
 </script>
 
@@ -18,6 +22,7 @@ defineProps<{
       </template>
       <b v-else class="mono">Loading</b>
     </div>
+    <button class="btn btn-primary" type="button" @click="$emit('openGuide')">Guide</button>
   </header>
 </template>
 
@@ -69,4 +74,31 @@ defineProps<{
 .sep {
   color: #4B584F;
 }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: 600 13px/1 var(--font-body);
+}
+
+.btn-primary {
+  padding: 7px 13px;
+  background: var(--cat-environment);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #3A6431;
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--cat-hydrology);
+  outline-offset: 2px;
+}
+
 </style>

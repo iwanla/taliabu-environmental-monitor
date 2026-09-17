@@ -7,6 +7,9 @@ import InspectorPanel from "./components/InspectorPanel.vue";
 import Timeline from "./components/Timeline.vue";
 import MetricsRow from "./components/MetricsRow.vue";
 import CompareView from "./components/CompareView.vue";
+import GuidelineDrawer from "./components/GuidelineDrawer.vue";
+import guidelineMarkdown from "../../../GUIDELINE.md?raw";
+import guidelineMarkdownId from "../../../GUIDELINE.id.md?raw";
 import { area } from "@turf/turf";
 import { AOI_MAX_HA } from "./composables/useAoiAnalysis";
 import { runChangeDetection, type ChangeResult, type ChangeType } from "./composables/changeDetection";
@@ -24,6 +27,7 @@ const selectedScene = ref<SatelliteAcquisition | null>(null);
 const activePreset = ref("latest");
 const basemapMode = ref<BasemapMode>("vector");
 const miningImpact = ref(false);
+const guideOpen = ref(false);
 
 const MINING_IMPACT_ON = ["mining-iup", "ndvi", "rivers", "watersheds", "coastline", "settlement-areas"];
 
@@ -367,7 +371,7 @@ onMounted(() => {
 
 <template>
   <div class="app">
-    <AppHeader :latest-acquisition="scenes[0] ?? null" />
+    <AppHeader :latest-acquisition="scenes[0] ?? null" @open-guide="guideOpen = true" />
     <LayerPanel :draw-mode="drawMode" :basemap-mode="basemapMode" :mining-impact="miningImpact" @draw-aoi="toggleDrawAoi" @basemap-changed="handleBasemapChanged" @toggle-mining-impact="toggleMiningImpact" />
     <div class="map-area">
       <MapView
@@ -434,6 +438,7 @@ onMounted(() => {
       :permit-name="selectedLayerId?.replace(/-layer$/, '') === 'mining-iup' ? String(selectedFeature?.properties?.name ?? '') || null : null"
       @change-scope="(s) => (analyticsScope = s)"
     />
+    <GuidelineDrawer :open="guideOpen" :markdown-en="guidelineMarkdown" :markdown-id="guidelineMarkdownId" @close="guideOpen = false" />
   </div>
 </template>
 

@@ -4,8 +4,8 @@ export const staticLayers: MapLayerDefinition[] = [
   {
     id: "mining-iup",
     name: "Permit boundaries",
-    sub: "ESDM / MOMI",
-    description: "IUP permit boundaries from ESDM and MOMI records. Permits inside an AOI are counted in the AOI analysis panel.",
+    sub: "BIG · Kebijakan Satu Peta",
+    description: "IUP permit boundaries from BIG Kebijakan Satu Peta records. Permits inside an AOI are counted in the AOI analysis panel.",
     category: "mining",
     type: "vector",
     defaultVisible: true,
@@ -154,7 +154,7 @@ export const staticLayers: MapLayerDefinition[] = [
   {
     id: "settlements",
     name: "Settlements",
-    description: "Settlement point locations from OSM. Sparse coverage — Taliabu villages are partly unmapped.",
+    description: "Settlement point locations from BIG Rupabumi Indonesia. Coverage is sparse — missing features do not prove that no settlement exists.",
     category: "terrain",
     type: "vector",
     defaultVisible: false,
@@ -171,7 +171,7 @@ export const staticLayers: MapLayerDefinition[] = [
   {
     id: "settlement-areas",
     name: "Settlement areas",
-    description: "Built-up area polygons. Fallback for village footprints where OSM points are missing.",
+    description: "Settlement area polygons from BIG Rupabumi Indonesia. Coverage is sparse and is a reference layer, not a complete built-up map.",
     category: "terrain",
     type: "vector",
     defaultVisible: false,
