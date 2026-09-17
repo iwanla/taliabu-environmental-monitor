@@ -586,7 +586,7 @@ onMounted(() => {
   .bottom-bar {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    max-height: 55vh;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
 }
 </style>
