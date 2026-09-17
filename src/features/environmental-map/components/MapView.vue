@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { Map as MaplibreMap, LngLatBounds, addProtocol } from "maplibre-gl";
+import { Map as MaplibreMap, LngLatBounds, addProtocol, setWorkerUrl } from "maplibre-gl";
 import type { GeoJSONSource, MapMouseEvent, RasterTileSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+
+setWorkerUrl("/assets/maplibre-gl-worker.mjs");
 import MapLegend from "./MapLegend.vue";
 import { useLayers } from "../composables/useLayers";
 import { traceDownstream } from "../composables/terrain";

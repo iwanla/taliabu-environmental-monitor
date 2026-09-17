@@ -1,5 +1,5 @@
 {
-	"name": "taliabu-environmental",
+	"name": "taliabu-environmental-dev",
 	"main": "worker/index.ts",
 	"compatibility_date": "2024-12-01",
 	"compatibility_flags": [
@@ -9,18 +9,11 @@
 		"directory": "dist",
 		"binding": "ASSETS"
 	},
-	"routes": [
-		{
-			"pattern": "environment.jelajahtaliabu.web.id",
-			"custom_domain": true
-		}
-	],
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "taliabu-db",
-			"database_id": "77fe3a7f-a516-40f3-ac5e-a7115c02cbef",
-			"remote": true
+			"database_id": "77fe3a7f-a516-40f3-ac5e-a7115c02cbef"
 		}
 	]
 }
