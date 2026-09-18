@@ -134,7 +134,9 @@ Rencana lengkap dan status tiap fase ada di [docs/PLAN.md](docs/PLAN.md).
 | 15 | Alert lingkungan | Selesai |
 | 16 | Export dan evidence (PNG, CSV, GeoJSON, JSON, share URL) | Selesai |
 | 17 | Scheduled discovery | Selesai |
-| 18-19 | Hardening, production readiness | Berikutnya |
+| 18 | Cloudflare security hardening | Berikutnya |
+| 19 | Performance dan free-tier hardening | Pending |
+| 20 | Production readiness | Pending |
 
 ## Deployment
 

@@ -30,3 +30,11 @@ pnpm-debug.log*
 skills-lock.json
 public/data/terrain/demnas.tif
 __pycache__/
+
+# Terraform local state and credentials
+infrastructure/**/.terraform/
+infrastructure/**/*.tfstate
+infrastructure/**/*.tfstate.*
+infrastructure/**/*.tfvars
+infrastructure/**/*.tfvars.json
+infrastructure/**/tfplan

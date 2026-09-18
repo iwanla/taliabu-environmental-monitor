@@ -14,6 +14,12 @@ type Env = {
 
 const app = new Hono<{ Bindings: Env }>();
 
+const ASSET_PATH_PREFIXES = ["/assets/", "/data/", "/favicon."];
+
+function isAssetPath(pathname: string): boolean {
+  return pathname === "/" || pathname === "/index.html" || ASSET_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 app.use("/api/*", cors());
 
 app.get("/api/health", (c) => {
@@ -33,7 +39,18 @@ app.all("/api/*", (c) => {
 });
 
 app.notFound((c) => {
-  return c.env.ASSETS.fetch(c.req.raw);
+  const pathname = new URL(c.req.url).pathname;
+  if (!isAssetPath(pathname)) {
+    return c.text("Not found", 404);
+  }
+
+  return c.env.ASSETS.fetch(c.req.raw).then((response) => {
+    // Do not let an asset fallback turn a missing file into a fake 200 page.
+    if (pathname !== "/" && response.headers.get("content-type")?.includes("text/html")) {
+      return new Response("Not found", { status: 404 });
+    }
+    return response;
+  });
 });
 
 // ponytail: cron daily 06:00 UTC — fetch last 30 days, dedup via INSERT OR IGNORE

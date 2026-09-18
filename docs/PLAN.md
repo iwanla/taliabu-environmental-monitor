@@ -1129,7 +1129,25 @@ Latest usable scene dapat diperbarui otomatis.
 - Tested locally: cron trigger → 22 tiles fetched, 2026-08-19 → 2026-09-18
 - Build verified ✓
 
-# Phase 18 — Performance and Free-Tier Hardening
+# Phase 18 — Cloudflare Security Hardening
+
+## Goal
+
+Memperkuat proteksi aplikasi di edge Cloudflare sebelum optimasi performa dan deployment publik.
+
+## Checklist
+
+```text
+✓ Free Managed Ruleset
+✓ Block common scanner paths
+✓ Block unsupported server extensions
+✓ Rate limit expensive API
+✓ Correct unknown-path 404 behavior
+✓ Security Events review
+○ Bot Fight Mode after verification
+```
+
+# Phase 19 — Performance and Free-Tier Hardening
 
 ## Goal
 
@@ -1175,7 +1193,7 @@ Production-ready quota strategy.
 - failed provider request tidak menyebabkan retry storm;
 - application tetap berada dalam expected free-tier usage untuk personal/community traffic.
 
-# Phase 19 — Production Readiness
+# Phase 20 — Production Readiness
 
 ## Goal
 
@@ -1238,8 +1256,9 @@ M14 D1 persistence
 M15 Scheduled scene discovery
 M16 Environmental alerts
 M17 Export/evidence
-M18 Performance/free-tier hardening
-M19 Production readiness
+M18 Cloudflare security hardening
+M19 Performance/free-tier hardening
+M20 Production readiness
 ```
 
 # Recommended Starting Point
