@@ -134,8 +134,8 @@ Rencana lengkap dan status tiap fase ada di [docs/PLAN.md](docs/PLAN.md).
 | 15 | Alert lingkungan | Selesai |
 | 16 | Export dan evidence (PNG, CSV, GeoJSON, JSON, share URL) | Selesai |
 | 17 | Scheduled discovery | Selesai |
-| 18 | Cloudflare security hardening | Berikutnya |
-| 19 | Performance dan free-tier hardening | Pending |
+| 18 | Cloudflare security hardening | Selesai |
+| 19 | Performance dan free-tier hardening | Berikutnya |
 | 20 | Production readiness | Pending |
 
 ## Deployment
@@ -149,6 +149,7 @@ Sebelum deploy pertama: buat database D1 (`wrangler d1 create taliabu-db`), gant
 ## Dokumentasi Lanjutan
 
 - [docs/PLAN.md](docs/PLAN.md): roadmap eksekusi fase demi fase beserta catatan verifikasi.
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): langkah deploy Worker, D1, Terraform WAF, dan verifikasi production.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): keputusan arsitektur.
 - [docs/PRD.md](docs/PRD.md): kebutuhan produk.
 - [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md): sistem visual earth-tone.

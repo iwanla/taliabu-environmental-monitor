@@ -90,7 +90,66 @@ npx wrangler secret put COPERNICUS_CLIENT_SECRET
 
 Verifikasi nama secret dari dashboard Cloudflare atau konfigurasi Worker. Jangan menampilkan nilainya di log atau memasukkannya ke file konfigurasi.
 
-## 5. Pemeriksaan Sebelum Deploy
+## 5. Cloudflare Security Infrastructure
+
+WAF custom rules dan rate limiting dikelola melalui Terraform, terpisah dari
+deployment Worker:
+
+```text
+infrastructure/cloudflare/
+├── provider.tf
+├── waf.tf
+└── rate-limit.tf
+```
+
+Buat API Token Cloudflare dengan permission berikut:
+
+```text
+Zone → WAF → Edit
+Zone resource → jelajahtaliabu.web.id
+```
+
+`environment.jelajahtaliabu.web.id` berada di dalam zone tersebut. Token tidak
+boleh disimpan di repository atau file `.tfvars`.
+
+Ambil `Zone ID` dari Cloudflare Dashboard pada halaman Overview zone
+`jelajahtaliabu.web.id`, lalu jalankan dari direktori Terraform:
+
+```bash
+cd infrastructure/cloudflare
+export TF_VAR_cloudflare_api_token="..."
+export TF_VAR_cloudflare_zone_id="..."
+
+terraform init
+terraform fmt
+terraform validate
+terraform plan -out=tfplan
+terraform apply tfplan
+```
+
+Konfigurasi ini membuat:
+
+- WAF block untuk scanner secret, WordPress, PHP, backup, dan server extension
+  yang tidak digunakan aplikasi;
+- rate limit `60 requests / 10 seconds / IP` untuk `/api/render` dan
+  `/api/copernicus/*`.
+
+Terraform state saat ini bersifat lokal dan di-ignore oleh Git. Jalankan
+Terraform dari satu workspace yang menyimpan state tersebut secara aman.
+Jangan menjalankan `apply` paralel dari beberapa mesin.
+
+Free Managed Ruleset, Security Events review, dan Bot Fight Mode tetap
+dikelola dari Cloudflare Dashboard:
+
+```text
+Security → WAF → Managed rules
+Security → Events
+Security → Bots
+```
+
+Bot Fight Mode diaktifkan hanya setelah traffic browser dan API diverifikasi.
+
+## 6. Pemeriksaan Sebelum Deploy
 
 Jalankan dari root repository:
 
@@ -107,7 +166,7 @@ Periksa hal berikut sebelum melanjutkan:
 - Dua Worker secrets sudah tersedia.
 - Tidak ada credential pada diff Git.
 
-## 6. Deploy
+## 7. Deploy
 
 ```bash
 npm run deploy
@@ -115,7 +174,7 @@ npm run deploy
 
 Script tersebut menjalankan `vite build` lalu `wrangler deploy`. URL Worker akan ditampilkan oleh Wrangler setelah deployment selesai.
 
-## 7. Smoke Test
+## 8. Smoke Test
 
 Simpan URL Worker dari output deployment, lalu periksa health endpoint:
 
@@ -141,7 +200,7 @@ Lanjutkan pemeriksaan di browser:
 - tombol `Guide` membuka guideline dan toggle EN/ID bekerja;
 - tidak ada error baru di console browser.
 
-## 8. Observasi Log
+## 9. Observasi Log
 
 Jika request gagal setelah deployment, lihat log Worker secara langsung:
 
@@ -151,13 +210,30 @@ npx wrangler tail
 
 Gunakan endpoint `/api/health` untuk membedakan masalah deployment dari masalah provider. Jika health endpoint gagal, periksa deployment dan binding `DB`. Jika health endpoint berhasil tetapi scene atau render gagal, periksa Worker secrets dan kredensial Copernicus.
 
-## 9. Custom Domain
+## 10. Custom Domain
 
-Custom domain belum didefinisikan di `wrangler.jsonc`. Setelah deployment awal tervalidasi, tambahkan domain dari Cloudflare Dashboard pada pengaturan Worker, atau tambahkan konfigurasi domain sesuai DNS dan zone yang digunakan.
+Production custom domain sudah didefinisikan di `wrangler.jsonc`:
+
+```jsonc
+"routes": [
+  {
+    "pattern": "environment.jelajahtaliabu.web.id",
+    "custom_domain": true
+  }
+]
+```
+
+Pastikan zone `jelajahtaliabu.web.id` berada pada account Cloudflare yang sama
+dengan Worker dan API Token. Setelah deploy, uji domain tersebut secara
+langsung:
+
+```bash
+curl -i https://environment.jelajahtaliabu.web.id/api/health
+```
 
 Jangan mengubah konfigurasi domain sebelum URL `workers.dev` lulus smoke test.
 
-## 10. Deployment Berikutnya
+## 11. Deployment Berikutnya
 
 Untuk deployment setelah perubahan kode:
 
@@ -174,7 +250,34 @@ npx wrangler d1 migrations apply taliabu-db --remote
 
 Jangan menjalankan `wrangler d1 migrations apply --remote` dari branch atau commit yang belum direview.
 
-## Troubleshooting
+## 12. Verifikasi Security Setelah Deploy
+
+Path yang tidak mungkin valid harus berhenti di edge atau menghasilkan `404`,
+bukan SPA shell `200`:
+
+```bash
+curl -I https://environment.jelajahtaliabu.web.id/.env
+curl -I https://environment.jelajahtaliabu.web.id/wp-admin
+curl -I https://environment.jelajahtaliabu.web.id/foo.php
+curl -i https://environment.jelajahtaliabu.web.id/random-exploit-path
+```
+
+Request scanner yang diblokir WAF seharusnya muncul sebagai event pada:
+
+```text
+Security → Events
+```
+
+Endpoint aplikasi normal harus tetap bekerja:
+
+```bash
+curl -i https://environment.jelajahtaliabu.web.id/api/health
+```
+
+Expected: `200` untuk health check, `403` atau action block Cloudflare untuk
+scanner, dan `404` untuk unknown path yang mencapai Worker.
+
+## 13. Troubleshooting
 
 ### `database_id` masih placeholder
 
@@ -192,7 +295,22 @@ Pastikan kedua secret Copernicus sudah diset pada akun Cloudflare yang sama deng
 
 Pastikan build berhasil dan asset directory tetap `dist` dengan binding `ASSETS` seperti di `wrangler.jsonc`. Periksa URL Worker tanpa prefix `/api`.
 
-## Checklist Release
+### Terraform gagal membuat ruleset
+
+Pastikan `TF_VAR_cloudflare_api_token` masih valid, permission token adalah
+`Zone → WAF → Edit`, dan zone ID cocok dengan `jelajahtaliabu.web.id`. Jika
+ruleset sudah dibuat manual di dashboard, jangan membuat entry point ruleset
+kedua pada phase yang sama; import resource yang sudah ada atau hapus resource
+manual setelah memastikan konfigurasinya aman.
+
+### Scanner masih mencapai Worker
+
+`404` dari Worker berarti routing aplikasi bekerja, tetapi request belum
+diblokir di edge. Periksa resource `cloudflare_ruleset.waf_custom`, pastikan
+zone benar, lalu lihat `Security → Events` untuk mengetahui apakah rule
+berstatus `Block` dan request melewati zone yang sama.
+
+## 14. Checklist Release
 
 - [ ] `npx wrangler whoami` menunjuk akun yang benar.
 - [ ] `database_id` production sudah diisi.
@@ -202,6 +320,12 @@ Pastikan build berhasil dan asset directory tetap `dist` dengan binding `ASSETS`
 - [ ] `npx vue-tsc --noEmit` berhasil.
 - [ ] `npm run build` berhasil.
 - [ ] `npm run deploy` berhasil.
+- [ ] `terraform init` dan `terraform validate` berhasil.
+- [ ] `terraform apply tfplan` berhasil.
+- [ ] WAF custom rules terlihat pada `Security → WAF → Custom rules`.
+- [ ] Rate limiting rule terlihat pada `Security → WAF → Rate limiting rules`.
 - [ ] `/api/health` mengembalikan status `ok`.
+- [ ] Path scanner mendapat block atau `404`, bukan SPA shell `200`.
+- [ ] Security Events tidak menunjukkan false positive pada traffic aplikasi.
 - [ ] Smoke test browser selesai tanpa error console baru.
 - [ ] Attribution dan batasan interpretasi data tetap tampil.
