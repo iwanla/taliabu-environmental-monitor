@@ -13,20 +13,20 @@ scenes.get("/acquisitions", async (c) => {
   const collection = c.req.query("collection") ?? "sentinel-2-l2a";
   const maxCloudCover = Number(c.req.query("maxCloudCover") ?? "20");
 
+  const cached = await cachedAcquisitions(c.env.DB, collection, from, to, maxCloudCover);
+  if (cached) return c.json({ items: cached, cached: true });
+
   try {
     const tiles = await searchScenes({ collection, from, to, maxCloudCover });
     await persistScenes(c.env.DB, tiles);
     return c.json({ items: groupAcquisitions(tiles) });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    const cached = await cachedAcquisitions(c.env.DB, collection, from, to, maxCloudCover);
-    if (cached) return c.json({ items: cached, cached: true });
     return c.json({ error: "STAC_PROVIDER_ERROR", message: msg, retryable: true }, 502);
   }
 });
 
-// ponytail: write-through cache + read fallback, dedup via PK INSERT OR IGNORE
-async function persistScenes(db: D1Database, tiles: SatelliteTile[]) {
+export async function persistScenes(db: D1Database, tiles: SatelliteTile[]) {
   if (!tiles.length) return;
   const stmt = db.prepare(
     `INSERT OR IGNORE INTO satellite_scenes (id, collection, acquired_at, cloud_cover, bbox, preview_url, provider)
@@ -57,6 +57,11 @@ async function cachedAcquisitions(db: D1Database, collection: string, from: stri
 
 scenes.get("/acquisitions/latest", async (c) => {
   const maxCloudCover = Number(c.req.query("maxCloudCover") ?? "20");
+  const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const to = new Date().toISOString().slice(0, 10);
+
+  const cached = await cachedAcquisitions(c.env.DB, "sentinel-2-l2a", from, to, maxCloudCover);
+  if (cached?.length) return c.json(cached[0]);
 
   try {
     const acquisition = await getLatestAcquisition(maxCloudCover);

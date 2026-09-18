@@ -1117,6 +1117,18 @@ Latest usable scene dapat diperbarui otomatis.
 - workflow failure dapat diretry;
 - application tetap berjalan jika workflow gagal.
 
+## Status
+
+**Completed** — 2026-09-18
+
+- `wrangler.jsonc`: cron trigger `0 6 * * *` (daily 06:00 UTC)
+- `worker/index.ts`: `scheduledHandler` — fetch STAC last 30 days → `persistScenes` → D1
+- `worker/routes/scenes.ts`: export `persistScenes` (dedup via `INSERT OR IGNORE` PK)
+- `/api/acquisitions`: baca D1 dulu, fallback STAC hanya saat cache kosong
+- `/api/acquisitions/latest`: baca D1 dulu, fallback STAC
+- Tested locally: cron trigger → 22 tiles fetched, 2026-08-19 → 2026-09-18
+- Build verified ✓
+
 # Phase 18 — Performance and Free-Tier Hardening
 
 ## Goal

@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import scenes from "./routes/scenes";
+import scenes, { persistScenes } from "./routes/scenes";
 import render from "./routes/render";
 import alerts from "./routes/alerts";
+import { searchScenes } from "./services/planetary-computer-stac";
 
 type Env = {
   ASSETS: Fetcher;
@@ -35,4 +36,18 @@ app.notFound((c) => {
   return c.env.ASSETS.fetch(c.req.raw);
 });
 
-export default app;
+// ponytail: cron daily 06:00 UTC — fetch last 30 days, dedup via INSERT OR IGNORE
+async function scheduledHandler(event: ScheduledEvent, env: Env): Promise<void> {
+  const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const to = new Date().toISOString().slice(0, 10);
+
+  const tiles = await searchScenes({ collection: "sentinel-2-l2a", from, to, maxCloudCover: 20 });
+  await persistScenes(env.DB, tiles);
+
+  console.log(`[cron] scene discovery: ${tiles.length} tiles fetched, ${from} → ${to}`);
+}
+
+export default {
+  fetch: app.fetch,
+  scheduled: scheduledHandler,
+};
