@@ -38,10 +38,21 @@ app.all("/api/*", (c) => {
   return c.json({ error: "Not found" }, 404);
 });
 
-app.notFound((c) => {
+app.notFound(async (c) => {
   const pathname = new URL(c.req.url).pathname;
+  if (pathname === "/api" || pathname.startsWith("/api/")) {
+    return c.json({ error: "Not found" }, 404);
+  }
   if (!isAssetPath(pathname)) {
-    return c.text("Not found", 404);
+    const assetResponse = await c.env.ASSETS.fetch(new Request(new URL("/", c.req.url), {
+      method: "GET",
+      headers: c.req.raw.headers,
+    }));
+    return new Response(assetResponse.body, {
+      status: 404,
+      statusText: "Not Found",
+      headers: assetResponse.headers,
+    });
   }
 
   return c.env.ASSETS.fetch(c.req.raw).then((response) => {
