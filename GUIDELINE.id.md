@@ -324,7 +324,7 @@ Cloud-free adalah proporsi pixel di dalam cakupan yang berisi nilai valid dalam 
 cloud-free coverage = valid pixels / pixels inside the scope mask
 ```
 
-Request render menggunakan jendela waktu Sentinel-2 L2A yang berakhir pada tanggal yang dipilih. Jendela tersebut mencakup tanggal terpilih dan sembilan hari sebelumnya, dengan filter cloud-cover maksimum provider sebesar 20 persen. Karena itu, metrik tidak selalu dihitung dari satu gambar sesaat. Metrik merupakan render satelit yang dirakit dari data tersedia dalam jendela request tersebut.
+Request render menggunakan jendela waktu Sentinel-2 L2A yang berakhir pada tanggal yang dipilih. Jendela tersebut mencakup tanggal terpilih dan sembilan hari sebelumnya, dengan filter cloud-cover maksimum provider sebesar 100 persen. Karena itu, metrik tidak selalu dihitung dari satu gambar sesaat. Metrik merupakan render satelit yang dirakit dari data tersedia dalam jendela request tersebut, dengan pixel berawan ditangani oleh mask SCL jika berlaku.
 
 Cloud-free coverage adalah indikator kualitas, bukan interval kepercayaan statistik. Misalnya, `80% cloud-free` berarti 80% pixel cakupan lolos mask data untuk kedua indeks. Itu tidak berarti hasilnya 80% akurat.
 
@@ -447,7 +447,7 @@ from = selected date - 9 days
 to   = selected date
 ```
 
-Request menggunakan data Sentinel-2 L2A dan filter cloud-cover maksimum provider sebesar 20 persen. Render mentah mengodekan setiap nilai indeks ke dalam channel pixel agar browser dapat mendekodekannya kembali ke rentang `-1` hingga `1`. Channel alpha membawa mask data valid.
+Request menggunakan data Sentinel-2 L2A dan filter cloud-cover maksimum provider sebesar 100 persen. Render mentah mengodekan setiap nilai indeks ke dalam channel pixel agar browser dapat mendekodekannya kembali ke rentang `-1` hingga `1`. Channel alpha membawa mask data valid.
 
 Karena setiap tanggal adalah sebuah jendela, perbandingan dapat mencerminkan perbedaan observasi yang tersedia di dalam jendela tersebut. Tanggal yang ditampilkan pada hasil adalah tanggal akhir yang diminta, bukan jaminan bahwa setiap pixel diamati tepat pada hari itu.
 
@@ -573,7 +573,7 @@ Gunakan nilai cloud-free dari hasil analisis saat menilai apakah hasil Land Cove
 
 ### Cara scene menjadi aktif
 
-Ketika memilih scene timeline, aplikasi menggunakan tanggal akuisisinya untuk tanggal peta aktif dan meminta layer citra yang sesuai. Perhitungan Land Cover menggunakan jendela render sepuluh hari yang berakhir pada tanggal tersebut dan menerapkan filter cloud-cover maksimum provider sebesar 20 persen. Karena itu, tanggal aktif menunjukkan akhir jendela analisis; tanggal tersebut tidak menjamin setiap pixel yang ditampilkan berasal dari satu gambar yang diambil pada tanggal itu.
+Ketika memilih scene timeline, aplikasi menggunakan tanggal akuisisinya untuk tanggal peta aktif dan meminta layer citra yang sesuai. Perhitungan Land Cover menggunakan jendela render sepuluh hari yang berakhir pada tanggal tersebut dan menerapkan filter cloud-cover maksimum provider sebesar 100 persen. Pixel berawan harus dibaca bersama mask SCL dan cloud-free coverage. Karena itu, tanggal aktif menunjukkan akhir jendela analisis; tanggal tersebut tidak menjamin setiap pixel yang ditampilkan berasal dari satu gambar yang diambil pada tanggal itu.
 
 Jika tidak ada scene yang dipilih, panel Land Cover meminta Anda memilih scene sebelum menghitung metrik. Jika layanan render tidak dapat mengembalikan citra untuk tanggal terpilih, panel menunjukkan bahwa metrik tidak tersedia untuk scene tersebut.
 
@@ -799,7 +799,7 @@ Aplikasi menggabungkan citra satelit live atau yang dirender provider dengan dat
 
 ### Metadata akuisisi satelit
 
-Aplikasi mencari API [STAC Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) untuk metadata akuisisi `sentinel-2-l2a` di atas bounding box pencarian Taliabu. Hasilnya mencakup waktu akuisisi, metadata cloud-cover, identifier scene, jumlah tile, dan informasi provider. Pencarian scene yang berhasil ditulis ke tabel D1 `satellite_scenes`. Jika pencarian provider gagal, worker dapat mengembalikan akuisisi yang cocok dari cache.
+Aplikasi mencari API [STAC Copernicus Data Space](https://stac.dataspace.copernicus.eu/) untuk metadata akuisisi `sentinel-2-l2a` di atas bounding box pencarian Taliabu. Hasilnya mencakup waktu akuisisi, metadata cloud-cover, identifier scene, jumlah tile, dan informasi provider. Pencarian scene yang berhasil ditulis ke tabel D1 `satellite_scenes`. Jika pencarian provider gagal, worker dapat mengembalikan akuisisi yang cocok dari cache.
 
 Katalog akuisisi adalah metadata. Katalog memberi tahu aplikasi observasi yang tersedia untuk dicari; katalog bukan hasil Land Cover atau Change Detection itu sendiri.
 

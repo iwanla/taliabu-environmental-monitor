@@ -43,7 +43,7 @@ render.post("/render", async (c) => {
   const from = body.from ?? new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
   const to = body.to ?? now.toISOString().slice(0, 10);
 
-  const params = JSON.stringify({ bbox, from, to, maxCloudCoverage: body.maxCloudCoverage ?? 20, width: body.width ?? 1024, height: body.height ?? 1024 });
+  const params = JSON.stringify({ bbox, from, to, maxCloudCoverage: body.maxCloudCoverage ?? 100, width: body.width ?? 1024, height: body.height ?? 1024 });
   const run = await c.env.DB.prepare(`INSERT INTO analysis_runs (type, params) VALUES (?, ?)`)
     .bind(type, params)
     .run<{ meta: { last_row_id: number } }>();
@@ -53,7 +53,7 @@ render.post("/render", async (c) => {
       bbox: bbox as [number, number, number, number],
       from,
       to,
-      maxCloudCoverage: body.maxCloudCoverage ?? 20,
+      maxCloudCoverage: body.maxCloudCoverage ?? 100,
       width: body.width ?? 1024,
       height: body.height ?? 1024,
       type,
@@ -119,7 +119,7 @@ render.get("/render/tile/:z/:x/:y", async (c) => {
       bbox,
       from,
       to,
-      maxCloudCoverage: Number(c.req.query("maxCloud") ?? 20),
+      maxCloudCoverage: Number(c.req.query("maxCloud") ?? 100),
       width: 256,
       height: 256,
       type,

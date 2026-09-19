@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { groupAcquisitions, searchScenes, getLatestAcquisition, type SatelliteTile } from "../services/planetary-computer-stac";
+import { groupAcquisitions, searchScenes, getLatestAcquisition, type SatelliteTile } from "../services/copernicus-stac";
 
 type Env = {
   DB: D1Database;
@@ -11,7 +11,7 @@ scenes.get("/acquisitions", async (c) => {
   const from = c.req.query("from") ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const to = c.req.query("to") ?? new Date().toISOString().slice(0, 10);
   const collection = c.req.query("collection") ?? "sentinel-2-l2a";
-  const maxCloudCover = Number(c.req.query("maxCloudCover") ?? "20");
+  const maxCloudCover = Number(c.req.query("maxCloudCover") ?? "100");
 
   const cached = await cachedAcquisitions(c.env.DB, collection, from, to, maxCloudCover);
   if (cached) return c.json({ items: cached, cached: true });
@@ -38,9 +38,9 @@ export async function persistScenes(db: D1Database, tiles: SatelliteTile[]) {
 async function cachedAcquisitions(db: D1Database, collection: string, from: string, to: string, maxCloudCover: number) {
   const rows = await db
     .prepare(
-      `SELECT * FROM satellite_scenes WHERE collection = ? AND acquired_at >= ? AND acquired_at <= ? AND (cloud_cover IS NULL OR cloud_cover <= ?)`,
+      `SELECT * FROM satellite_scenes WHERE collection = ? AND provider = ? AND acquired_at >= ? AND acquired_at <= ? AND (cloud_cover IS NULL OR cloud_cover <= ?)`,
     )
-    .bind(collection, `${from}T00:00:00Z`, `${to}T23:59:59Z`, maxCloudCover)
+    .bind(collection, "copernicus", `${from}T00:00:00Z`, `${to}T23:59:59Z`, maxCloudCover)
     .all<{ id: string; collection: string; acquired_at: string; cloud_cover: number | null; bbox: string; preview_url: string | null; provider: string }>();
   if (!rows.results.length) return null;
   const tiles: SatelliteTile[] = rows.results.map((r) => ({
@@ -56,7 +56,7 @@ async function cachedAcquisitions(db: D1Database, collection: string, from: stri
 }
 
 scenes.get("/acquisitions/latest", async (c) => {
-  const maxCloudCover = Number(c.req.query("maxCloudCover") ?? "20");
+  const maxCloudCover = Number(c.req.query("maxCloudCover") ?? "100");
   const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const to = new Date().toISOString().slice(0, 10);
 

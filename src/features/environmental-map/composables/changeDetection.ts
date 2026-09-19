@@ -75,12 +75,12 @@ export function diffPixels(
 
 export async function renderRaw(metric: Rule["metric"], date: string, box: [number, number, number, number]): Promise<ImageData> {
   const to = date;
-  // 10-day lookback: per-tile revisit + <=20% cloud filter can leave 5-day windows empty (north Taliabu tile)
+  // 10-day lookback: per-tile revisit can still leave windows empty; SCL masks cloudy pixels.
   const from = new Date(new Date(date).getTime() - 9 * 86400000).toISOString().slice(0, 10);
   const res = await fetch("/api/render", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bbox: box, from, to, maxCloudCoverage: 20, width: 512, height: 512, type: metric }),
+    body: JSON.stringify({ bbox: box, from, to, maxCloudCoverage: 100, width: 512, height: 512, type: metric }),
   });
   if (!res.ok) throw new Error(`render ${metric} @ ${date}: HTTP ${res.status}`);
   const bitmap = await createImageBitmap(await res.blob());

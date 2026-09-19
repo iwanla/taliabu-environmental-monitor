@@ -1,4 +1,4 @@
-const PC_STAC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1/search";
+const COPERNICUS_STAC_URL = "https://stac.dataspace.copernicus.eu/v1/search";
 
 export interface SatelliteTile {
   id: string;
@@ -6,7 +6,7 @@ export interface SatelliteTile {
   acquiredAt: string;
   cloudCover?: number;
   bbox: number[];
-  provider: "planetary-computer";
+  provider: "copernicus";
   previewUrl?: string;
 }
 
@@ -51,7 +51,7 @@ export async function searchScenes(opts: {
 }): Promise<SatelliteTile[]> {
   const collection = opts.collection ?? "sentinel-2-l2a";
 
-  const response = await fetch(PC_STAC_URL, {
+  const response = await fetch(COPERNICUS_STAC_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -67,7 +67,7 @@ export async function searchScenes(opts: {
   });
 
   if (!response.ok) {
-    throw new Error(`Planetary Computer STAC error: ${response.status}`);
+    throw new Error(`Copernicus STAC error: ${response.status}`);
   }
 
   const result = await response.json<StacSearchResponse>();
@@ -78,7 +78,7 @@ export async function searchScenes(opts: {
     acquiredAt: feature.properties.datetime,
     cloudCover: feature.properties["eo:cloud_cover"],
     bbox: feature.bbox,
-    provider: "planetary-computer" as const,
+    provider: "copernicus" as const,
     previewUrl: feature.assets?.rendered_preview?.href,
   }));
 }
@@ -113,7 +113,7 @@ export function groupAcquisitions(tiles: SatelliteTile[]): SatelliteAcquisition[
 }
 
 export async function getLatestAcquisition(
-  maxCloudCover: number = 20,
+  maxCloudCover: number = 100,
 ): Promise<SatelliteAcquisition | null> {
   const acquisitions = groupAcquisitions(await searchScenes({
     from: new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),

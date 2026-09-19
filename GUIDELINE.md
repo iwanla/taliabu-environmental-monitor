@@ -324,7 +324,7 @@ Cloud-free is the proportion of pixels inside the scope that contain valid value
 cloud-free coverage = valid pixels / pixels inside the scope mask
 ```
 
-The render request uses a Sentinel-2 L2A time window ending on the selected date. The window covers the selected date and the previous nine days, with a maximum provider cloud-cover filter of 20 percent. Therefore, the metric is not necessarily calculated from one instantaneous image. It is a satellite render assembled from the available data in that request window.
+The render request uses a Sentinel-2 L2A time window ending on the selected date. The window covers the selected date and the previous nine days, with a maximum provider cloud-cover filter of 100 percent. Therefore, the metric is not necessarily calculated from one instantaneous image. It is a satellite render assembled from the available data in that request window, with cloudy pixels handled by the SCL mask where applicable.
 
 Cloud-free coverage is a quality indicator, not a statistical confidence interval. For example, `80% cloud-free` means 80% of the scope pixels passed the data mask for both indices. It does not mean the result is 80% accurate.
 
@@ -447,7 +447,7 @@ from = selected date - 9 days
 to   = selected date
 ```
 
-The request uses Sentinel-2 L2A data and a provider maximum cloud-cover filter of 20 percent. The raw render encodes each index value into a pixel channel so the browser can decode it back to the range `-1` to `1`. The alpha channel carries the valid-data mask.
+The request uses Sentinel-2 L2A data and a provider maximum cloud-cover filter of 100 percent. The raw render encodes each index value into a pixel channel so the browser can decode it back to the range `-1` to `1`. The alpha channel carries the valid-data mask.
 
 Because each date is a window, the comparison can reflect differences in the observations available within those windows. The date shown in the result is the requested end date, not a guarantee that every pixel was observed exactly on that day.
 
@@ -573,7 +573,7 @@ Use the cloud-free value from the analysis result when judging whether a particu
 
 ### How a scene becomes active
 
-When you select a timeline scene, the application uses its acquisition date for the active map date and requests the corresponding imagery layers. Land Cover calculations use a ten-day render window ending on that date and apply a maximum provider cloud-cover filter of 20 percent. The active date therefore identifies the end of the analysis window; it does not guarantee that every displayed pixel came from one image captured on that date.
+When you select a timeline scene, the application uses its acquisition date for the active map date and requests the corresponding imagery layers. Land Cover calculations use a ten-day render window ending on that date and apply a maximum provider cloud-cover filter of 100 percent. Cloudy pixels must be interpreted using the SCL mask and cloud-free coverage. The active date therefore identifies the end of the analysis window; it does not guarantee that every displayed pixel came from one image captured on that date.
 
 If no scene is selected, the Land Cover panel asks you to select a scene before it computes metrics. If the render service cannot return imagery for the selected date, the panel shows that metrics are unavailable for the scene.
 
@@ -799,7 +799,7 @@ The application combines live or provider-rendered satellite imagery with prepar
 
 ### Satellite acquisition metadata
 
-The application searches the [Microsoft Planetary Computer STAC](https://planetarycomputer.microsoft.com/) API for `sentinel-2-l2a` acquisition metadata over the Taliabu search bounding box. The results include acquisition time, cloud-cover metadata, scene identifier, tile count, and provider information. Successful scene searches are written to the D1 `satellite_scenes` table. If the provider search fails, the worker can return matching cached acquisitions.
+The application searches the [Copernicus Data Space STAC](https://stac.dataspace.copernicus.eu/) API for `sentinel-2-l2a` acquisition metadata over the Taliabu search bounding box. The results include acquisition time, cloud-cover metadata, scene identifier, tile count, and provider information. Successful scene searches are written to the D1 `satellite_scenes` table. If the provider search fails, the worker can return matching cached acquisitions.
 
 The acquisition catalog is metadata. It tells the application which observations are available to search; it is not itself the Land Cover or Change Detection result.
 

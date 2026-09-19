@@ -317,11 +317,11 @@ Frontend dapat menampilkan daftar acquisition Sentinel-2 aktual untuk Taliabu.
 
 **Completed** — 2026-09-15
 
-- `worker/services/planetary-computer-stac.ts` — STAC search via Planetary Computer (free, no auth)
+- `worker/services/copernicus-stac.ts` — STAC search via Copernicus Data Space
 - `worker/routes/scenes.ts` — `/api/scenes` and `/api/scenes/latest` endpoints
 - Scene normalization: id, collection, acquiredAt, cloudCover, bbox, provider
 - Hardcoded Taliabu AOI bbox: [124.42, -2.10, 125.22, -1.52]
-- Default collection: `sentinel-2-l2a`, max cloud cover: 20%
+- Default collection: `sentinel-2-l2a`, max cloud cover: 100%
 - Tested: returns 12 scenes for Sep 2026 with 2–19% cloud cover
 - Copernicus credentials (COPERNICUS_CLIENT_ID, COPERNICUS_CLIENT_SECRET) saved as Worker secrets for Phase 4 Sentinel Hub
 

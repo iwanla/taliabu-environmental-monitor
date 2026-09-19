@@ -289,7 +289,7 @@ export async function renderScene(
     },
   };
   if (!isSAR) {
-    dataFilter.maxCloudCoverage = opts.maxCloudCoverage ?? 20;
+    dataFilter.maxCloudCoverage = opts.maxCloudCoverage ?? 100;
   }
 
   const res = await fetch(PROCESS_URL, {

@@ -19,7 +19,7 @@ Seluruh lapisan satelit (NDVI, MNDWI, NDTI, deteksi perubahan) adalah **proxy re
 - Klik berprioritas (IUP > titik > area) dan panel inspektur yang sadar konteks.
 
 **Satelit dan lapisan lingkungan**
-- Pencarian scene Sentinel-2 L2A via STAC (Planetary Computer) dengan filter cloud coverage, timeline scene, dan mode perbandingan before/after.
+- Pencarian scene Sentinel-2 L2A via Copernicus Data Space STAC dengan filter cloud coverage, timeline scene, dan mode perbandingan before/after.
 - Lapisan raster on-the-fly dari Sentinel Hub: True Color, NDVI, MNDWI, NDTI (kekeruhan air, Lacaux et al. 2007), tepi air scene (NDWI), masing-masing dengan cloud masking SCL.
 
 **Analisis**
@@ -41,7 +41,7 @@ Seluruh lapisan satelit (NDVI, MNDWI, NDTI, deteksi perubahan) adalah **proxy re
 | Frontend | Vue 3, TypeScript, Vite, MapLibre GL JS, Turf.js |
 | Backend | Cloudflare Workers, Hono, TypeScript |
 | Database | Cloudflare D1 (metadata saja, tanpa raster) |
-| Satelit | Copernicus Data Space (Sentinel Hub), Planetary Computer STAC, Sentinel-2 |
+| Satelit | Copernicus Data Space (Catalog dan Sentinel Hub), Sentinel-2 |
 | Data spasial | OpenFreeMap, OpenStreetMap, BIG/Ina-Geoportal, DEMNAS, ESDM |
 
 ## Struktur Proyek

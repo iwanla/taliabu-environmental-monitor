@@ -1501,7 +1501,7 @@ Example logical configuration:
   },
   "satellite": {
     "defaultCollection": "sentinel-2-l2a",
-    "preferredCloudCover": 20
+    "preferredCloudCover": 100
   },
   "analysis": {
     "riverBufferMeters": 500,

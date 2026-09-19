@@ -352,7 +352,7 @@ function rasterTileUrls(def: MapLayerDefinition, from: string) {
   const to = source.evalscriptKey.startsWith("sar")
     ? new Date(new Date(from).getTime() + 30 * 86400000).toISOString().slice(0, 10)
     : from;
-  const q = new URLSearchParams({ type: source.evalscriptKey, from, to, maxCloud: "20" });
+  const q = new URLSearchParams({ type: source.evalscriptKey, from, to, maxCloud: "100" });
   if (source.maskable && cloudMaskOn.value) q.set("mask", "1");
   return [`copernicus://render/tile/{z}/{x}/{y}?${q}`];
 }
