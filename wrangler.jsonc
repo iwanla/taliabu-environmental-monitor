@@ -5,6 +5,10 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"vars": {
+		"ENVIRONMENT": "production",
+		"API_HOST": "api.environment.jelajahtaliabu.web.id"
+	},
 	"observability": {
 		"logs": {
 			"enabled": true,
@@ -19,6 +23,10 @@
 	"routes": [
 		{
 			"pattern": "environment.jelajahtaliabu.web.id",
+			"custom_domain": true
+		},
+		{
+			"pattern": "api.environment.jelajahtaliabu.web.id",
 			"custom_domain": true
 		}
 	],

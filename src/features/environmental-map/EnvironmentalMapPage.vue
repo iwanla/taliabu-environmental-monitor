@@ -15,6 +15,7 @@ import { AOI_MAX_HA } from "./composables/useAoiAnalysis";
 import { runChangeDetection, type ChangeResult, type ChangeType } from "./composables/changeDetection";
 import { computeLandCover, type AnalyticsScope, type LandCover } from "./composables/analytics";
 import type { BasemapMode } from "@/shared/types/layers";
+import { apiUrl } from "@/shared/api";
 import { useLayers } from "./composables/useLayers";
 import { buildShareUrl, decodeAoi, downloadBlob, exportFileStamp, exportMapPng, exportStamp } from "./composables/export";
 
@@ -233,7 +234,7 @@ function getDateRange(preset: string): { from: string; to: string } {
 
 async function loadScenes(from: string, to: string, compareState?: { compare: boolean; sceneBId?: string; mode?: "swipe" | "split" }) {
   try {
-    const res = await fetch(`/api/acquisitions?from=${from}&to=${to}&maxCloudCover=100`);
+    const res = await fetch(apiUrl(`/api/acquisitions?from=${from}&to=${to}&maxCloudCover=100`));
     const data = await res.json();
     scenes.value = data.items ?? [];
     if (scenes.value.length > 0) {

@@ -1,4 +1,5 @@
 import { bbox } from "@turf/turf";
+import { apiUrl } from "@/shared/api";
 
 export type ChangeType = "vegetation-loss" | "new-bare-land" | "water-change";
 
@@ -77,7 +78,7 @@ export async function renderRaw(metric: Rule["metric"], date: string, box: [numb
   const to = date;
   // 10-day lookback: per-tile revisit can still leave windows empty; SCL masks cloudy pixels.
   const from = new Date(new Date(date).getTime() - 9 * 86400000).toISOString().slice(0, 10);
-  const res = await fetch("/api/render", {
+  const res = await fetch(apiUrl("/api/render"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ bbox: box, from, to, maxCloudCoverage: 100, width: 512, height: 512, type: metric }),

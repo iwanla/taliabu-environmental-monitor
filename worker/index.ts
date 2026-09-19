@@ -8,6 +8,8 @@ import { searchScenes } from "./services/copernicus-stac";
 type Env = {
   ASSETS: Fetcher;
   DB: D1Database;
+  ENVIRONMENT: string;
+  API_HOST: string;
   COPERNICUS_CLIENT_ID: string;
   COPERNICUS_CLIENT_SECRET: string;
 };
@@ -20,7 +22,21 @@ function isAssetPath(pathname: string): boolean {
   return pathname === "/" || pathname === "/index.html" || ASSET_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-app.use("/api/*", cors());
+const isApiPath = (url: URL) => url.pathname === "/api" || url.pathname.startsWith("/api/");
+
+const isApiHost = (url: URL, apiHost: string) => url.hostname === apiHost;
+
+app.use("/api/*", cors({
+  origin: ["https://environment.jelajahtaliabu.web.id", "http://localhost:5173"],
+}));
+
+app.use("*", async (c, next) => {
+  const url = new URL(c.req.url);
+  if (c.env.ENVIRONMENT === "production" && isApiPath(url) !== isApiHost(url, c.env.API_HOST)) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  await next();
+});
 
 app.get("/api/health", (c) => {
   return c.json({

@@ -6,6 +6,7 @@ import { CHANGE_RULES, type ChangeResult, type ChangeType } from "../composables
 import { ALERT_LABELS, alertLabel, DEFAULT_THRESHOLDS, evaluateAlerts, type AlertThresholds, type AlertEvidence, type EnvAlert } from "../composables/alerts";
 import type { LandCover } from "../composables/analytics";
 import { DATA_ATTRIBUTION, SATELLITE_SOURCE, downloadBlob, exportFileStamp, toCsv, type CsvRow } from "../composables/export";
+import { apiUrl } from "@/shared/api";
 
 const props = defineProps<{
   feature: GeoJSON.Feature | null;
@@ -126,7 +127,7 @@ function contextText(a: { evidence: AlertEvidence }): string {
 async function loadAlerts() {
   try {
     const q = logKind.value ? `&kind=${encodeURIComponent(logKind.value)}` : "";
-    const res = await fetch(`/api/alerts?limit=50${q}`);
+    const res = await fetch(apiUrl(`/api/alerts?limit=50${q}`));
     logAlerts.value = (await res.json()).alerts ?? [];
   } catch {
     logAlerts.value = [];
@@ -140,7 +141,7 @@ async function saveAlerts() {
   saving.value = true;
   saveError.value = null;
   try {
-    const res = await fetch("/api/alerts", {
+    const res = await fetch(apiUrl("/api/alerts"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ alerts: alerts.value }),

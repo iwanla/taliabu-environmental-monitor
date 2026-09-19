@@ -5,6 +5,10 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"vars": {
+		"ENVIRONMENT": "development",
+		"API_HOST": "localhost"
+	},
 	"assets": {
 		"directory": "dist",
 		"binding": "ASSETS"

@@ -14,6 +14,14 @@ Panduan ini menjelaskan deployment `taliabu-environmental` ke Cloudflare Workers
 
 Jangan commit credential. File `.dev.vars`, `.env`, dan `.env.*` sudah di-ignore oleh repository.
 
+Frontend production membutuhkan origin API melalui `VITE_API_ORIGIN`. Buat `.env.production` secara lokal sebelum build:
+
+```bash
+printf 'VITE_API_ORIGIN=https://api.example.com\n' > .env.production
+```
+
+Ganti nilainya dengan hostname API deployment yang sebenarnya. Development tidak memerlukan nilai ini karena Vite memakai proxy `/api` ke Worker lokal.
+
 ## Development Lokal
 
 Development menggunakan `wrangler.dev.jsonc` dan D1 lokal. Konfigurasi production di `wrangler.jsonc` tetap memakai D1 remote.
@@ -222,6 +230,17 @@ Production custom domain sudah didefinisikan di `wrangler.jsonc`:
   }
 ]
 ```
+
+Worker yang sama juga memakai custom domain API:
+
+```text
+https://api.environment.jelajahtaliabu.web.id/api/health
+```
+
+Hostname `api.` bersifat API-only. Path selain `/api` dan `/api/*` selalu
+mengembalikan JSON `404`; domain utama tetap melayani aplikasi Vue. Frontend
+production menggunakan base URL `https://api.environment.jelajahtaliabu.web.id`
+untuk request API; Vite tetap memakai proxy lokal saat development.
 
 Pastikan zone `jelajahtaliabu.web.id` berada pada account Cloudflare yang sama
 dengan Worker dan API Token. Setelah deploy, uji domain tersebut secara

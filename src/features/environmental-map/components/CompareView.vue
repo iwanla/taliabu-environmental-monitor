@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch } from "vue";
 import { Map as MaplibreMap, LngLatBounds } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { MapViewCamera, SatelliteAcquisition } from "./MapView.vue";
+import { apiUrl } from "@/shared/api";
 
 const props = defineProps<{
   sceneA: SatelliteAcquisition;
@@ -78,7 +79,7 @@ async function renderScene(map: MaplibreMap, scene: SatelliteAcquisition, source
   const from = scene.acquiredAt.slice(0, 10);
 
   try {
-    const res = await fetch("/api/render", {
+    const res = await fetch(apiUrl("/api/render"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

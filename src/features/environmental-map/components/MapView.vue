@@ -10,6 +10,7 @@ import { useLayers } from "../composables/useLayers";
 import { traceDownstream } from "../composables/terrain";
 import { centroid } from "@turf/turf";
 import type { BasemapMode, MapLayerDefinition } from "@/shared/types/layers";
+import { apiUrl } from "@/shared/api";
 
 export interface SatelliteTile {
   id: string;
@@ -80,7 +81,7 @@ addProtocol("copernicus", async (params, abortController) => {
     await new Promise((r) => setTimeout(r, 250));
   }
   if (abortController.signal.aborted) throw new Error("aborted");
-  const url = `${location.origin}/api/${params.url.slice("copernicus://".length)}`;
+  const url = apiUrl(`/api/${params.url.slice("copernicus://".length)}`);
   const res = await fetch(url, { signal: abortController.signal });
   return { data: await res.arrayBuffer() };
 });
