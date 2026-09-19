@@ -9,8 +9,11 @@ resource "cloudflare_ruleset" "api_rate_limit" {
       ref         = "rate_limit_expensive_api"
       description = "Limit expensive render and Copernicus proxy requests per IP"
       expression  = <<-EOT
-        http.request.uri.path eq "/api/render" or
-        starts_with(http.request.uri.path, "/api/copernicus/")
+        http.host eq "api.environment.jelajahtaliabu.web.id" and
+        (
+          http.request.uri.path eq "/api/render" or
+          starts_with(http.request.uri.path, "/api/copernicus/")
+        )
       EOT
       action      = "block"
       enabled     = true
