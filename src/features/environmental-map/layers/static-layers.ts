@@ -202,6 +202,22 @@ export const staticLayers: MapLayerDefinition[] = [
       "line-dasharray": [6, 3],
     },
   },
+  {
+    id: "villages",
+    name: "Village boundaries",
+    sub: "Desa & kelurahan · BIG",
+    description: "Village and kelurahan boundaries for Kabupaten Pulau Taliabu from BIG. Use as administrative context; boundaries are not a land-cover or ownership dataset.",
+    category: "administrative",
+    type: "vector",
+    defaultVisible: true,
+    opacity: 0.8,
+    source: { type: "geojson", url: "/data/boundaries/villages.geojson" },
+    layerType: "line",
+    paint: {
+      "line-color": "#3E4C44",
+      "line-width": 1
+    },
+  },
 
   {
     id: "scl",

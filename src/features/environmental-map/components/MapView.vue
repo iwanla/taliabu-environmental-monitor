@@ -163,6 +163,27 @@ function addLayerToMap(def: MapLayerDefinition, data: GeoJSON.FeatureCollection)
     map.addLayer({ id: outlineId, type: "line", source: sourceId, paint: linePaint });
     map.setPaintProperty(outlineId, "line-opacity", opacity);
   }
+
+  if (def.id === "villages") {
+    map.addLayer({
+      id: "villages-labels",
+      type: "symbol",
+      source: sourceId,
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 7, 9, 11, 12, 14, 15],
+        "text-padding": 3,
+        "text-allow-overlap": false,
+      },
+      paint: {
+        "text-color": "#3E4C44",
+        "text-halo-color": "#F7F8F1",
+        "text-halo-width": 1.25,
+        "text-opacity": opacity,
+      },
+    });
+  }
 }
 
 function updateLayerVisibility(def: MapLayerDefinition) {
@@ -184,6 +205,10 @@ function updateLayerVisibility(def: MapLayerDefinition) {
     }
   } else {
     map.setPaintProperty(layerId, `${def.layerType}-opacity`, visible ? opacity : 0);
+  }
+
+  if (map.getLayer(`${def.id}-labels`)) {
+    map.setPaintProperty(`${def.id}-labels`, "text-opacity", visible ? opacity : 0);
   }
 }
 
@@ -442,7 +467,7 @@ function resetView() {
 function updateBasemap(mode: BasemapMode) {
   if (!map) return;
   for (const layer of map.getStyle().layers ?? []) {
-    if (layer.id.endsWith("-layer") || layer.id.endsWith("-outline") || layer.id.startsWith("taliabu-") || layer.id.startsWith("aoi-")) continue;
+    if (layer.id.endsWith("-layer") || layer.id.endsWith("-outline") || layer.id.endsWith("-labels") || layer.id.startsWith("taliabu-") || layer.id.startsWith("aoi-")) continue;
     if (!originalBasemapVisibility.has(layer.id)) {
       originalBasemapVisibility.set(layer.id, layer.layout?.visibility as "visible" | "none" | undefined);
     }
@@ -451,7 +476,9 @@ function updateBasemap(mode: BasemapMode) {
       : mode === "minimal" && layer.type !== "symbol"
         ? originalBasemapVisibility.get(layer.id)
         : "none";
-    map.setLayoutProperty(layer.id, "visibility", visibility ?? "visible");
+    const layout = layer.layout as Record<string, unknown> | undefined;
+    const isBasemapLabel = layer.type === "symbol" && Boolean(layout?.["text-field"]);
+    map.setLayoutProperty(layer.id, "visibility", isBasemapLabel ? "none" : visibility ?? "visible");
   }
   if (map.getLayer("sentinel-layer")) {
     map.setLayoutProperty("sentinel-layer", "visibility", mode === "satellite" ? "visible" : "none");
