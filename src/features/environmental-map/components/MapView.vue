@@ -68,6 +68,7 @@ const loadedSources = new Set<string>();
 const originalBasemapVisibility = new Map<string, "visible" | "none" | undefined>();
 
 const legendGroups = ref<{ id: string; title: string; items: { label: string; color: string }[] }[]>([]);
+let satelliteTimer: ReturnType<typeof setTimeout> | undefined;
 
 const showCloudMaskToggle = computed(() =>
   layers.value.some((l) => l.type === "raster" && l.source.maskable && isVisible(l.id)),
@@ -447,6 +448,13 @@ async function updateSatelliteLayers(scenes: SatelliteAcquisition[]) {
   updateBasemap(props.basemapMode);
 }
 
+function scheduleSatelliteLayers(scenes: SatelliteAcquisition[]) {
+  clearTimeout(satelliteTimer);
+  // Rapid scene selection (arrowing through the timeline) would otherwise fire
+  // a fresh tile-set swap per keystroke; collapse it to the last selection.
+  satelliteTimer = setTimeout(() => updateSatelliteLayers(scenes), 150);
+}
+
 function zoomIn() { map?.zoomIn(); }
 function zoomOut() { map?.zoomOut(); }
 function locateMe() {
@@ -621,7 +629,7 @@ onMounted(async () => {
   });
 });
 
-watch(() => props.activeScenes, (scenes) => updateSatelliteLayers(scenes ?? []), { deep: true });
+watch(() => props.activeScenes, (scenes) => scheduleSatelliteLayers(scenes ?? []), { deep: true });
 watch(() => props.basemapMode, updateBasemap);
 watch(() => props.changeOverlay, updateChangeOverlay);
 
@@ -683,6 +691,7 @@ onMounted(() => document.addEventListener("keydown", onAoiKeydown));
 
 onUnmounted(() => {
   document.removeEventListener("keydown", onAoiKeydown);
+  clearTimeout(satelliteTimer);
   map?.remove();
 });
 
@@ -735,7 +744,7 @@ watch(
 
     <div class="map-controls">
       <button class="btn-icon" title="Zoom in" @click="zoomIn">+</button>
-      <button class="btn-icon" title="Zoom out" @click="zoomOut">–</button>
+      <button class="btn-icon" title="Zoom out" @click="zoomOut">-</button>
       <button class="btn-icon" title="Reset to Taliabu extent" @click="resetView">⟲</button>
       <button class="btn-icon" title="Locate me" @click="locateMe">◎</button>
     </div>

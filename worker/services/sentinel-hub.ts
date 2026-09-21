@@ -260,7 +260,6 @@ export interface RenderOptions {
   width?: number;
   height?: number;
   type?: string;
-  evalscript?: string;
   masked?: boolean;
   signal?: AbortSignal;
 }
@@ -277,7 +276,7 @@ export async function renderScene(
   const token = await getAccessToken(clientId, clientSecret);
   const type = opts.type ?? "true-color";
   const masked = !!opts.masked && MASKED_TYPES.has(type);
-  const evalscript = opts.evalscript ?? (masked ? maskedScript(EVALSCRIPTS[type]) : EVALSCRIPTS[type]) ?? TRUE_COLOR_EVALSCRIPT;
+  const evalscript = (masked ? maskedScript(EVALSCRIPTS[type]) : EVALSCRIPTS[type]) ?? TRUE_COLOR_EVALSCRIPT;
 
   const isSAR = type.startsWith("sar");
   const dataType = isSAR ? "sentinel-1-grd" : "sentinel-2-l2a";

@@ -46,6 +46,17 @@ app.get("/api/health", (c) => {
   });
 });
 
+// Provider-quota ledger written by the render route (app_config counters).
+app.get("/api/quota", async (c) => {
+  const day = new Date().toISOString().slice(0, 10);
+  const rows = await c.env.DB.prepare(`SELECT key, value FROM app_config WHERE key LIKE ?`)
+    .bind(`quota:${day}:%`)
+    .all<{ key: string; value: string }>();
+  const counters: Record<string, number> = {};
+  for (const row of rows.results) counters[row.key.replace(`quota:${day}:`, "")] = Number(row.value);
+  return c.json({ date: day, renders: counters.ok ?? 0, failed: counters.fail ?? 0 });
+});
+
 app.route("/api", scenes);
 app.route("/api", render);
 app.route("/api", alerts);

@@ -1,5 +1,12 @@
 import { Hono } from "hono";
-import { renderScene, getEvalscript } from "../services/sentinel-hub";
+import { renderScene } from "../services/sentinel-hub";
+import {
+  cacheTtlSeconds,
+  clampDimension,
+  isBboxInBounds,
+  renderCacheKey,
+  RENDER_BBOX_LIMIT,
+} from "../services/render-guards";
 
 type Env = {
   DB: D1Database;
@@ -9,7 +16,62 @@ type Env = {
 
 const VALID_TYPES = ["true-color", "ndvi", "ndwi", "mndwi", "false-color", "bare-soil", "sar", "sar-raw", "scl", "ndvi-raw", "mndwi-raw", "ndti", "shore-band"];
 
+interface RenderedImage {
+  bytes: ArrayBuffer;
+  contentType: string;
+  cacheControl: string;
+}
+
+// Same-key renders that arrive while one is in flight (component overlap,
+// rapid scene switching) share the single provider call. Buffered bytes keep
+// each caller's Response independent — a stream body can only be consumed once.
+const inflight = new Map<string, Promise<RenderedImage>>();
+
+// Provider failures are not retried automatically; block immediate re-requests
+// of the same key so a debounce loop cannot become a retry storm.
+const FAILURE_COOLDOWN_SECONDS = 30;
+const failures = new Map<string, number>();
+
 const render = new Hono<{ Bindings: Env }>();
+
+async function countRender(db: D1Database, kind: "ok" | "fail") {
+  const id = `quota:${new Date().toISOString().slice(0, 10)}:${kind}`;
+  await db
+    .prepare(
+      `INSERT INTO app_config (key, value) VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT), updated_at = datetime('now')`,
+    )
+    .bind(id, "1")
+    .run();
+}
+
+async function renderAndTrack(
+  env: Env,
+  opts: Parameters<typeof renderScene>[2],
+  ttl: number,
+): Promise<RenderedImage> {
+  const imageStream = await renderScene(env.COPERNICUS_CLIENT_ID, env.COPERNICUS_CLIENT_SECRET, opts);
+  return {
+    bytes: await new Response(imageStream).arrayBuffer(),
+    contentType: "image/png",
+    cacheControl: `public, max-age=${ttl}`,
+  };
+}
+
+function imageResponse(result: RenderedImage): Response {
+  return new Response(result.bytes, {
+    headers: { "Content-Type": result.contentType, "Cache-Control": result.cacheControl },
+  });
+}
+
+function isDateString(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+}
+
+function tilesIntersectBounds(tile: [number, number, number, number]): boolean {
+  const [lw, ls, le, ln] = RENDER_BBOX_LIMIT;
+  return tile[0] < le && tile[2] > lw && tile[1] < ln && tile[3] > ls;
+}
 
 render.post("/render", async (c) => {
   const clientId = c.env.COPERNICUS_CLIENT_ID;
@@ -30,7 +92,6 @@ render.post("/render", async (c) => {
     width?: number;
     height?: number;
     type?: string;
-    evalscript?: string;
   }>();
 
   const type = body.type ?? "true-color";
@@ -38,43 +99,95 @@ render.post("/render", async (c) => {
     return c.json({ error: "INVALID_TYPE", message: `Unknown type: ${type}. Valid: ${VALID_TYPES.join(", ")}` }, 400);
   }
 
+  // ponytail: no client-supplied evalscripts over HTTP — the whitelist above is
+  // the only way to reach Process API, so a caller cannot run arbitrary code.
   const bbox = body.bbox ?? [124.42, -2.10, 125.22, -1.52];
+  if (!isBboxInBounds(bbox)) {
+    return c.json(
+      { error: "BBOX_OUT_OF_BOUNDS", message: `bbox must lie within ${RENDER_BBOX_LIMIT.join(",")}` },
+      400,
+    );
+  }
+
   const now = new Date();
   const from = body.from ?? new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
   const to = body.to ?? now.toISOString().slice(0, 10);
+  if (!isDateString(from) || !isDateString(to) || from > to) {
+    return c.json({ error: "INVALID_TIMERANGE", message: "from/to must be YYYY-MM-DD with from <= to." }, 400);
+  }
+  const maxCloudCoverage = body.maxCloudCoverage ?? 100;
+  const width = clampDimension(body.width);
+  const height = clampDimension(body.height);
 
-  const params = JSON.stringify({ bbox, from, to, maxCloudCoverage: body.maxCloudCoverage ?? 100, width: body.width ?? 1024, height: body.height ?? 1024 });
-  const run = await c.env.DB.prepare(`INSERT INTO analysis_runs (type, params) VALUES (?, ?)`)
-    .bind(type, params)
-    .run<{ meta: { last_row_id: number } }>();
+  const cacheKey = renderCacheKey({
+    type,
+    bbox: bbox.join(","),
+    from,
+    to,
+    maxCloudCoverage,
+    width,
+    height,
+  }).url;
+  const ttl = cacheTtlSeconds(to);
+
+  const cache = caches.default;
+  const cacheReq = new Request(cacheKey);
+  const cached = await cache.match(cacheReq);
+  if (cached) {
+    return cached;
+  }
+
+  const failedAt = failures.get(cacheKey);
+  if (failedAt && Date.now() - failedAt < FAILURE_COOLDOWN_SECONDS * 1000) {
+    return c.json({ error: "RENDER_COOLDOWN", message: "Recent failure for this request; retry shortly.", retryable: true }, 503);
+  }
+
+  let pending = inflight.get(cacheKey);
+  if (!pending) {
+    pending = (async () => {
+      const params = JSON.stringify({ bbox, from, to, maxCloudCoverage, width, height });
+      const run = await c.env.DB.prepare(`INSERT INTO analysis_runs (type, params) VALUES (?, ?)`)
+        .bind(type, params)
+        .run<{ meta: { last_row_id: number } }>();
+
+      try {
+        const result = await renderAndTrack(c.env, {
+          bbox: bbox as [number, number, number, number],
+          from,
+          to,
+          maxCloudCoverage,
+          width,
+          height,
+          type,
+        }, ttl);
+
+        await c.env.DB.prepare(`UPDATE analysis_runs SET status = 'done', finished_at = datetime('now') WHERE id = ?`)
+          .bind(run.meta.last_row_id)
+          .run();
+        await countRender(c.env.DB, "ok");
+        failures.delete(cacheKey);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        await c.env.DB.prepare(`UPDATE analysis_runs SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`)
+          .bind(msg, run.meta.last_row_id)
+          .run();
+        await countRender(c.env.DB, "fail");
+        failures.set(cacheKey, Date.now());
+        throw err;
+      } finally {
+        inflight.delete(cacheKey);
+      }
+    })();
+    inflight.set(cacheKey, pending);
+  }
 
   try {
-    const imageStream = await renderScene(clientId, clientSecret, {
-      bbox: bbox as [number, number, number, number],
-      from,
-      to,
-      maxCloudCoverage: body.maxCloudCoverage ?? 100,
-      width: body.width ?? 1024,
-      height: body.height ?? 1024,
-      type,
-      evalscript: body.evalscript,
-    });
-
-    await c.env.DB.prepare(`UPDATE analysis_runs SET status = 'done', finished_at = datetime('now') WHERE id = ?`)
-      .bind(run.meta.last_row_id)
-      .run();
-
-    return new Response(imageStream, {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=3600",
-      },
-    });
+    const result = await pending;
+    c.executionCtx.waitUntil(cache.put(cacheReq, imageResponse(result)));
+    return imageResponse(result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    await c.env.DB.prepare(`UPDATE analysis_runs SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`)
-      .bind(msg, run.meta.last_row_id)
-      .run();
     return c.json({ error: "RENDER_ERROR", message: msg, retryable: true }, 502);
   }
 });
@@ -114,6 +227,12 @@ render.get("/render/tile/:z/:x/:y", async (c) => {
     lat(y),
   ];
 
+  // Reject tiles outside the Taliabu render window so the proxy cannot be used
+  // as a general-purpose Sentinel Hub tile fetcher.
+  if (!tilesIntersectBounds(bbox)) {
+    return c.json({ error: "TILE_OUT_OF_BOUNDS" }, 400);
+  }
+
   try {
     const imageStream = await renderScene(c.env.COPERNICUS_CLIENT_ID, c.env.COPERNICUS_CLIENT_SECRET, {
       bbox,
@@ -129,6 +248,8 @@ render.get("/render/tile/:z/:x/:y", async (c) => {
     return new Response(imageStream, {
       headers: {
         "Content-Type": "image/png",
+        // Tiles are immutable per (z,x,y,type,from,to,mask); Cloudflare/browser
+        // can reuse them for a week without reaching the provider.
         "Cache-Control": "public, max-age=604800, immutable",
       },
     });

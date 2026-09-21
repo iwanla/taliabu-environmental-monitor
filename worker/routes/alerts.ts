@@ -56,7 +56,7 @@ alerts.get("/alerts", async (c) => {
       evidence: JSON.parse(r.evidence),
       createdAt: r.created_at,
     })),
-  });
+  }, 200, { "Cache-Control": "public, max-age=60" });
 });
 
 export default alerts;

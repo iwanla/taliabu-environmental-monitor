@@ -14,12 +14,12 @@ scenes.get("/acquisitions", async (c) => {
   const maxCloudCover = Number(c.req.query("maxCloudCover") ?? "100");
 
   const cached = await cachedAcquisitions(c.env.DB, collection, from, to, maxCloudCover);
-  if (cached) return c.json({ items: cached, cached: true });
+  if (cached) return c.json({ items: cached, cached: true }, 200, { "Cache-Control": "public, max-age=300, stale-while-revalidate=600" });
 
   try {
     const tiles = await searchScenes({ collection, from, to, maxCloudCover });
     await persistScenes(c.env.DB, tiles);
-    return c.json({ items: groupAcquisitions(tiles) });
+    return c.json({ items: groupAcquisitions(tiles) }, 200, { "Cache-Control": "public, max-age=300, stale-while-revalidate=600" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return c.json({ error: "STAC_PROVIDER_ERROR", message: msg, retryable: true }, 502);
@@ -61,14 +61,14 @@ scenes.get("/acquisitions/latest", async (c) => {
   const to = new Date().toISOString().slice(0, 10);
 
   const cached = await cachedAcquisitions(c.env.DB, "sentinel-2-l2a", from, to, maxCloudCover);
-  if (cached?.length) return c.json(cached[0]);
+  if (cached?.length) return c.json(cached[0], 200, { "Cache-Control": "public, max-age=300, stale-while-revalidate=600" });
 
   try {
     const acquisition = await getLatestAcquisition(maxCloudCover);
     if (!acquisition) {
       return c.json({ error: "NO_USABLE_ACQUISITION", message: "No acquisition found within the last 30 days.", retryable: true }, 404);
     }
-    return c.json(acquisition);
+    return c.json(acquisition, 200, { "Cache-Control": "public, max-age=300, stale-while-revalidate=600" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return c.json({ error: "STAC_PROVIDER_ERROR", message: msg, retryable: true }, 502);

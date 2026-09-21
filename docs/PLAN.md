@@ -1207,6 +1207,18 @@ Production-ready quota strategy.
 - failed provider request tidak menyebabkan retry storm;
 - application tetap berada dalam expected free-tier usage untuk personal/community traffic.
 
+## Status
+
+**Completed** — 2026-09-21
+
+- 19.1 guards (`worker/services/render-guards.ts`, `scripts/check-render-guards.ts`): `POST /api/render` clamp width/height ke 16–1600px (default 1024), bbox harus di dalam window Taliabu `[123.8, -2.5, 125.8, -1.0]` (`BBOX_OUT_OF_BOUNDS`), validasi `from <= to` (`INVALID_TIMERANGE`); tile route menolak tile di luar window (`TILE_OUT_OF_BOUNDS` — sebelumnya proxy mau mengambil tile mana pun di bumi); `evalscript` arbitrer dari client dihapus dari interface (hanya whitelist `VALID_TYPES` yang mencapai Process API); CompareView kini mengirim `type` eksplisit.
+- 19.2 dedup + cache: request identik berbagi satu panggilan provider via in-flight map (bytes di-buffer agar tiap caller dapat Response sendiri — stream hanya bisa dikonsumsi sekali); hasil di-cache di `caches.default` — window historis 7 hari, window 2 hari terakhir 1 jam. Verified: 4 request paralel → 1 `analysis_runs`, semua 200 PNG; request ulang → cache hit tanpa run baru.
+- 19.3 anti retry-storm: failure per cache-key memicu cooldown 30 detik (`RENDER_COOLDOWN` 503) — verified: request rusak kedua langsung 503 tanpa menyentuh provider.
+- 19.4 debounce: pergantian scene di-collapse 150 ms (`scheduleSatelliteLayers`); analytics tetap 600 ms + cache `(scope|date)`; opacity slider hanya paint property (tanpa request).
+- 19.5 static caching: `public/_headers` — `/data/*` 1 hari + stale-while-revalidate, `/assets/*` immutable 1 tahun; `/api/acquisitions(+/latest)` `max-age=300, stale-while-revalidate=600`; `GET /api/alerts` `max-age=60`.
+- 19.6 quota monitoring: counter harian `quota:<date>:ok|fail` di `app_config` (ditulis tiap render + tiap failure), endpoint `GET /api/quota` → `{ date, renders, failed }`.
+- Verified: `vue-tsc` bersih, `vite build` OK, `wrangler deploy --dry-run` OK, self-checks (`check-render-guards`, `check-change-detection`) OK, browser smoke test (NDVI toggle → 9 tile 200, analytics terhitung, 0 console error; screenshot `phase19-ndvi-smoke.png`).
+
 # Phase 20 — Production Readiness
 
 ## Goal

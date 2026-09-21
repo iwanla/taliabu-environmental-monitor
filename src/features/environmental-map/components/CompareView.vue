@@ -89,6 +89,7 @@ async function renderScene(map: MaplibreMap, scene: SatelliteAcquisition, source
         maxCloudCoverage: 100,
         width: 1536,
         height: 1024,
+        type: "true-color",
       }),
     });
 
