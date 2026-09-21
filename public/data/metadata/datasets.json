@@ -24,6 +24,18 @@
     "notes": "Kabupaten Pulau Taliabu administrative boundary from BIG 1:25000 scale"
   },
   {
+    "id": "villages",
+    "category": "reference",
+    "source": "BIG Rupabumi Indonesia",
+    "sourceUrl": "https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_DESAKEL_AR/MapServer/0",
+    "retrievedAt": "2026-09-21",
+    "sourceUpdatedAt": null,
+    "version": "2026-09",
+    "refreshPolicy": "manual",
+    "license": null,
+    "notes": "Batas desa/kelurahan Pulau Taliabu, filtered with WADMKK='Pulau Taliabu' AND TIPADM IN (1,2)"
+  },
+  {
     "id": "rivers",
     "category": "reference",
     "source": "BIG Rupabumi Indonesia",

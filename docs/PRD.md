@@ -538,6 +538,23 @@ Potential sources:
 - public administrative boundaries;
 - hydrological datasets where permitted.
 
+### Village Administrative Boundaries
+
+Add village and kelurahan boundaries for Pulau Taliabu using BIG's
+`BATAS_DESAKEL_AR` layer:
+
+```text
+https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_DESAKEL_AR/MapServer/0
+```
+
+Use the Pulau Taliabu village/kelurahan filter:
+
+```text
+WADMKK='Pulau Taliabu' AND TIPADM IN (1,2)
+```
+
+Store the resulting static dataset with source attribution and metadata.
+
 ### OpenStreetMap / OpenFreeMap
 
 Use for:

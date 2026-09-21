@@ -193,6 +193,7 @@ public/data/
 ├── rivers.geojson
 ├── watersheds.geojson
 ├── settlements.geojson
+├── villages.geojson
 ├── administrative-boundaries.geojson
 └── mining-iup.geojson
 ```
@@ -246,6 +247,15 @@ Layer panel sudah menggunakan declarative layer definitions.
 - InspectorPanel: feature property display + dataset metadata (source, version, refresh policy)
 - Data restructured per ARCHITECTURE: `boundaries/`, `hydrology/`, `human/`, `mining/`, `coastal/`, `metadata/`
 - `datasets.json` with traceable metadata per dataset
+
+## Phase 2 Follow-up — Village Boundaries
+
+**Completed** — 2026-09-21
+
+- `public/data/boundaries/villages.geojson` berisi 71 desa/kelurahan dari BIG;
+- layer `Village boundaries` terdaftar di registry administratif dengan label desa;
+- source attribution dan metadata dataset sudah ditambahkan;
+- `scripts/download-villages.ts` tersedia untuk refresh manual.
 
 # Phase 3 — Copernicus Scene Discovery
 
