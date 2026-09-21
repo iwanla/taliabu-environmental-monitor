@@ -105,7 +105,7 @@ Data konteks statis sudah tersedia di `public/data/`. Untuk meregenerasi lapisan
 cd scripts/terrain
 python preprocess.py   # unduh DEMNAS, hasilkan elevation/slope/fdr
 python hydro.py        # flow direction → watershed
-python outlets.py      # muara D8 + jarak ke IUP terdekat
+python outlets.py         # muara D8 + luas catchment
 ```
 
 ## API

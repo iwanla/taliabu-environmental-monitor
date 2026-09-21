@@ -1,4 +1,4 @@
-import { area, intersect, pointToLineDistance, booleanPointInPolygon, centroid, featureCollection, point, distance } from "@turf/turf";
+import { area, intersect, pointToLineDistance, pointToPolygonDistance, booleanPointInPolygon, centroid, featureCollection, point, distance } from "@turf/turf";
 import { traceDownstream } from "./terrain";
 
 export const AOI_MAX_HA = 10_000;
@@ -16,6 +16,11 @@ export interface AoiAnalysis {
   downstream?: { distanceKm: number; outlet: [number, number] };
 }
 
+export interface NearestIup {
+  name: string;
+  distanceM: number;
+}
+
 const cache = new Map<string, Promise<GeoJSON.FeatureCollection>>();
 
 function load(url: string): Promise<GeoJSON.FeatureCollection> {
@@ -29,6 +34,21 @@ function isPolygonal(g: GeoJSON.Geometry): g is GeoJSON.Polygon | GeoJSON.MultiP
 
 function isLineal(g: GeoJSON.Geometry): g is GeoJSON.LineString | GeoJSON.MultiLineString {
   return g.type === "LineString" || g.type === "MultiLineString";
+}
+
+export async function findNearestIup(coordinates: [number, number]): Promise<NearestIup | undefined> {
+  const iup = await load("/data/mining/iup.geojson");
+  const origin = point(coordinates);
+  let nearest: NearestIup | undefined;
+
+  for (const f of iup.features) {
+    if (!isPolygonal(f.geometry)) continue;
+    const distanceM = Math.abs(pointToPolygonDistance(origin, f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>, { units: "meters" }));
+    if (!nearest || distanceM < nearest.distanceM) {
+      nearest = { name: String(f.properties?.name ?? "IUP").trim() || "IUP", distanceM };
+    }
+  }
+  return nearest;
 }
 
 export async function analyzeAoi(polygon: GeoJSON.Polygon): Promise<AoiAnalysis> {

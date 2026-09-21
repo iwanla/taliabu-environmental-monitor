@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch, computed } from "vue";
 import { useDatasetMetadata } from "../composables/useDatasetMetadata";
-import { analyzeAoi, type AoiAnalysis } from "../composables/useAoiAnalysis";
+import { analyzeAoi, findNearestIup, type AoiAnalysis, type NearestIup } from "../composables/useAoiAnalysis";
 import { CHANGE_RULES, type ChangeResult, type ChangeType } from "../composables/changeDetection";
 import { ALERT_LABELS, alertLabel, DEFAULT_THRESHOLDS, evaluateAlerts, type AlertThresholds, type AlertEvidence, type EnvAlert } from "../composables/alerts";
 import type { LandCover } from "../composables/analytics";
@@ -54,6 +54,27 @@ onMounted(() => {
 const analysis = ref<AoiAnalysis | null>(null);
 const analyzing = ref(false);
 const analysisFailed = ref(false);
+const nearestIup = ref<NearestIup | null>(null);
+const nearestIupLoading = ref(false);
+let nearestIupRequest = 0;
+
+watch(() => props.feature, async (feature) => {
+  const request = ++nearestIupRequest;
+  nearestIup.value = null;
+  nearestIupLoading.value = false;
+  if (feature?.properties?.type !== "river_outlet" || feature.geometry?.type !== "Point") return;
+
+  nearestIupLoading.value = true;
+  const coordinates = feature.geometry.coordinates as [number, number];
+  try {
+    const result = await findNearestIup(coordinates);
+    if (request === nearestIupRequest) nearestIup.value = result ?? null;
+  } catch {
+    if (request === nearestIupRequest) nearestIup.value = null;
+  } finally {
+    if (request === nearestIupRequest) nearestIupLoading.value = false;
+  }
+}, { immediate: true });
 
 watch(() => props.aoi, async (polygon) => {
   analysis.value = null;
@@ -298,6 +319,11 @@ async function copyShare() {
           <span>{{ formatKey(String(key)) }}</span>
           <span class="v">{{ formatValue(val) }}</span>
         </div>
+
+        <template v-if="feature.properties.type === 'river_outlet' && feature.geometry?.type === 'Point'">
+          <div class="metric-row"><span>Nearest IUP</span><span class="v">{{ nearestIupLoading ? "Loading…" : nearestIup ? nearestIup.name : "—" }}</span></div>
+          <div class="metric-row"><span>Distance to IUP boundary</span><span class="v">{{ nearestIupLoading ? "Loading…" : nearestIup ? formatM(nearestIup.distanceM) : "—" }}</span></div>
+        </template>
 
         <template v-if="layerId && getByLayerId(layerId)">
           <div class="meta-heading">Data source</div>

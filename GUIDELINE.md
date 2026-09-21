@@ -83,6 +83,7 @@ An area outside the known IUP layer means there was no intersection with the per
 2. Use the Inspector to check nearest-river distance, watershed, slope, and downstream outlet when available.
 3. Compare the location of the detected change with the modelled drainage context.
 4. Use the result to decide where downstream imagery or field checks may be useful.
+5. Click a river outlet to see its modelled catchment area, nearest known IUP, and distance to the current IUP boundary.
 
 The downstream path is a modelled orientation aid. It does not prove that sediment, pollution, or any other material travelled from the changed area.
 
@@ -831,7 +832,7 @@ Reference layers are prepared GeoJSON or raster files served from the applicatio
 - **Elevation**: [DEMNAS data from BIG](https://geoservices.big.go.id/raster/rest/services/DEMNAS/DEM_Indonesia/ImageServer/exportImage), preprocessed into a static raster with EGM2008 vertical datum.
 - **Slope**: derived from the DEMNAS elevation raster using a Horn 3×3 terrain operator.
 - **Derived drainage and catchments**: generated from DEMNAS using a D8 flow model. They are model outputs for orientation, not surveyed hydrology or official watershed boundaries.
-- **River outlets**: D8-derived stream mouths with modeled catchment and nearest-permit context.
+- **River outlets**: D8-derived stream mouths with modelled catchment area. When selected, the Inspector calculates the nearest known IUP and distance to its boundary from the current IUP snapshot.
 - **Basemap**: [OpenFreeMap](https://openfreemap.org/) tiles with [OpenStreetMap](https://www.openstreetmap.org/) contributors attribution.
 
 The layer Inspector can show source, version, retrieval date, and refresh policy for supported reference features. The metadata file records the source and notes used by the application. Raster indices such as NDVI, MNDWI, NDTI, and SCL are scene-derived products and should be read with the active scene date and source imagery.
@@ -840,7 +841,7 @@ The layer Inspector can show source, version, retrieval date, and refresh policy
 
 Satellite acquisition searches use a write-through cache: successful results are saved to D1, and a matching cached result can be returned when the provider is unavailable. The rendered imagery endpoint sends a one-hour browser cache directive for analysis renders and a longer immutable cache for map tiles. A cached response can therefore outlive a provider catalog update.
 
-Prepared reference layers follow their configured refresh policy. Some are manual snapshots, mining permits are marked for monthly refresh, and scene-derived satellite layers refresh per scene. Check the retrieval date and version when a reference layer matters to the decision.
+Prepared reference layers follow their configured refresh policy. Some are manual snapshots, mining permits are marked for monthly refresh, and scene-derived satellite layers refresh per scene. Updating the IUP snapshot changes the outlet context at runtime, but does not require rebuilding the outlet geometry. Check the retrieval date and version when a reference layer matters to the decision.
 
 The availability date of a scene is not the same as the moment it was captured. Provider processing can create a delay before a new scene appears in the search.
 

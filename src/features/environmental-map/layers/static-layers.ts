@@ -137,7 +137,7 @@ export const staticLayers: MapLayerDefinition[] = [
     id: "river-outlets",
     name: "River outlets",
     sub: "D8 DEMNAS · 48 mouths",
-    description: "Stream mouths from the DEMNAS D8 flow model, each with the modelled catchment area it drains and the nearest mining permit (IUP) for downstream context. Derived data for orientation — proximity to a permit implies nothing about actual discharge.",
+    description: "Stream mouths from the DEMNAS D8 flow model, each with the modelled catchment area it drains. The nearest mining permit and distance to its boundary are calculated from the current IUP data when an outlet is selected.",
     category: "coastal",
     type: "vector",
     defaultVisible: false,

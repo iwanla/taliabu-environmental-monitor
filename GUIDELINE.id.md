@@ -83,6 +83,7 @@ Area di luar layer IUP yang diketahui berarti tidak ada irisan dengan data izin 
 2. Gunakan Inspector untuk memeriksa jarak ke sungai terdekat, daerah aliran sungai, kemiringan, dan outlet hilir jika tersedia.
 3. Bandingkan lokasi perubahan yang terdeteksi dengan konteks drainase yang dimodelkan.
 4. Gunakan hasilnya untuk menentukan lokasi yang mungkin berguna bagi citra hilir atau pemeriksaan lapangan.
+5. Klik outlet sungai untuk melihat luas daerah tangkapan yang dimodelkan, IUP terdekat yang diketahui, dan jaraknya ke boundary IUP saat ini.
 
 Jalur hilir adalah alat bantu orientasi yang dimodelkan. Jalur ini tidak membuktikan bahwa sedimen, polusi, atau material lain bergerak dari area yang berubah.
 
@@ -831,7 +832,7 @@ Layer referensi adalah file GeoJSON atau raster yang disiapkan dan disajikan dar
 - **Elevasi**: [data DEMNAS dari BIG](https://geoservices.big.go.id/raster/rest/services/DEMNAS/DEM_Indonesia/ImageServer/exportImage), diproses terlebih dahulu menjadi raster statis dengan datum vertikal EGM2008.
 - **Kemiringan**: diturunkan dari raster elevasi DEMNAS menggunakan operator terrain Horn 3×3.
 - **Drainase dan daerah tangkapan turunan**: dibuat dari DEMNAS menggunakan model aliran D8. Hasilnya adalah output model untuk orientasi, bukan hidrologi yang disurvei atau batas daerah aliran sungai resmi.
-- **Outlet sungai**: muara sungai turunan D8 dengan konteks daerah tangkapan dan izin terdekat yang dimodelkan.
+- **Outlet sungai**: muara sungai turunan D8 dengan luas daerah tangkapan yang dimodelkan. Saat dipilih, Inspector menghitung IUP terdekat yang diketahui dan jaraknya ke boundary dari snapshot IUP saat ini.
 - **Basemap**: tile [OpenFreeMap](https://openfreemap.org/) dengan atribusi kontributor [OpenStreetMap](https://www.openstreetmap.org/).
 
 Inspector layer dapat menampilkan source, version, retrieval date, dan refresh policy untuk fitur referensi yang didukung. File metadata mencatat sumber dan catatan yang digunakan aplikasi. Indeks raster seperti NDVI, MNDWI, NDTI, dan SCL adalah produk turunan scene dan harus dibaca bersama tanggal scene aktif serta citra sumber.
@@ -840,7 +841,7 @@ Inspector layer dapat menampilkan source, version, retrieval date, dan refresh p
 
 Pencarian akuisisi satelit menggunakan write-through cache: hasil yang berhasil disimpan ke D1, dan hasil cache yang cocok dapat dikembalikan ketika provider tidak tersedia. Endpoint citra yang dirender mengirim arahan cache browser satu jam untuk render analisis dan cache immutable yang lebih panjang untuk tile peta. Karena itu, respons cache dapat bertahan lebih lama daripada pembaruan katalog provider.
 
-Layer referensi yang disiapkan mengikuti refresh policy yang dikonfigurasi. Sebagian adalah snapshot manual, izin pertambangan ditandai untuk refresh bulanan, dan layer satelit turunan scene di-refresh per scene. Periksa retrieval date dan version ketika layer referensi penting bagi keputusan.
+Layer referensi yang disiapkan mengikuti refresh policy yang dikonfigurasi. Sebagian adalah snapshot manual, izin pertambangan ditandai untuk refresh bulanan, dan layer satelit turunan scene di-refresh per scene. Pembaruan snapshot IUP mengubah konteks outlet saat runtime, tetapi tidak memerlukan pembangunan ulang geometri outlet. Periksa retrieval date dan version ketika layer referensi penting bagi keputusan.
 
 Tanggal ketersediaan scene tidak sama dengan saat scene itu diambil. Pemrosesan provider dapat membuat jeda sebelum scene baru muncul dalam pencarian.
 

@@ -353,6 +353,8 @@ monthly / quarterly / source-driven
 
 `mining/iup.geojson` represents a versioned snapshot of the best available public mining-permit dataset. A newer source version may replace it after validation, but previous source metadata must remain traceable.
 
+Hydrology artifacts must not embed relationships to this periodic dataset. `hydrology/river-outlets.geojson` contains only DEM/D8-derived outlet facts; nearest-IUP name and distance to the actual permit boundary are runtime spatial analysis over the current `mining/iup.geojson` snapshot.
+
 ### 7.3 Dynamic Observation Data
 
 Generated from satellite acquisitions and selected analysis periods. These are not stored as canonical files under `public/data`.

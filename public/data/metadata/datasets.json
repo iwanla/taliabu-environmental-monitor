@@ -134,13 +134,13 @@
   {
     "id": "river-outlets",
     "category": "coastal",
-    "source": "DEMNAS via BIG ImageServer (D8 stream mouths) + mining IUP proximity",
+    "source": "DEMNAS via BIG ImageServer (D8 stream mouths)",
     "sourceUrl": "https://geoservices.big.go.id/raster/rest/services/DEMNAS/DEM_Indonesia/ImageServer",
     "retrievedAt": "2026-09-16",
     "sourceUpdatedAt": null,
     "version": "1.0.0",
     "refreshPolicy": "manual",
     "license": null,
-    "notes": "48 D8-derived stream mouths with modelled catchment area and nearest mining permit for downstream context; derived model output, not surveyed data."
+    "notes": "48 D8-derived stream mouths with modelled catchment area. Nearest IUP and distance to its boundary are runtime analysis using the current mining snapshot; outlet geometry is derived model output, not surveyed data."
   }
 ]
