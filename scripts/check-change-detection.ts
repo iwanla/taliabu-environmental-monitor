@@ -1,4 +1,4 @@
-import { diffPixels } from "../src/features/environmental-map/composables/changeDetection.ts";
+import { diffPixels } from "../src/features/environmental-map/composables/changeDetectionCore.ts";
 
 const px = (v: number | null) =>
   v == null ? [0, 0, 0, 0] : [Math.round(((v + 1) / 2) * 255), 0, 0, 255];
