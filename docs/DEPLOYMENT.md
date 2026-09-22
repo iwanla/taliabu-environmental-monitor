@@ -59,13 +59,7 @@ Jika database belum pernah dibuat:
 npx wrangler d1 create taliabu-db
 ```
 
-Simpan `database_id` dari output perintah tersebut. Buka `wrangler.jsonc` dan ganti nilai berikut:
-
-```jsonc
-"database_id": "placeholder-replace-with-real-d1-id"
-```
-
-menjadi ID database yang diberikan Cloudflare.
+Simpan `database_id` dari output perintah tersebut. Buka `wrangler.jsonc` dan pastikan nilai `database_id` sama dengan ID tersebut (saat ini sudah terisi ID production).
 
 Nama database harus tetap `taliabu-db`, sesuai `database_name` di `wrangler.jsonc`.
 
@@ -220,12 +214,16 @@ Gunakan endpoint `/api/health` untuk membedakan masalah deployment dari masalah 
 
 ## 10. Custom Domain
 
-Production custom domain sudah didefinisikan di `wrangler.jsonc`:
+Production custom domains sudah didefinisikan di `wrangler.jsonc` (frontend dan API dipisah dengan sengaja; path non-`/api` di host API selalu JSON `404`):
 
 ```jsonc
 "routes": [
   {
     "pattern": "environment.jelajahtaliabu.web.id",
+    "custom_domain": true
+  },
+  {
+    "pattern": "api.environment.jelajahtaliabu.web.id",
     "custom_domain": true
   }
 ]
@@ -254,10 +252,9 @@ Jangan mengubah konfigurasi domain sebelum URL `workers.dev` lulus smoke test.
 
 ## 11. Deployment Berikutnya
 
-Untuk deployment setelah perubahan kode:
+Untuk deployment setelah perubahan kode (`predeploy` otomatis menjalankan typecheck sebelum build + deploy):
 
 ```bash
-npx vue-tsc --noEmit
 npm run deploy
 ```
 
@@ -298,9 +295,9 @@ scanner, dan `404` untuk unknown path yang mencapai Worker.
 
 ## 13. Troubleshooting
 
-### `database_id` masih placeholder
+### `database_id` salah atau menunjuk database lain
 
-Jalankan `npx wrangler d1 create taliabu-db`, salin ID database yang dihasilkan ke `wrangler.jsonc`, lalu ulangi migration dan deployment.
+Jalankan `npx wrangler d1 list` untuk melihat ID yang benar, samakan dengan `wrangler.jsonc`, lalu ulangi migration dan deployment.
 
 ### Worker tidak dapat mengakses D1
 

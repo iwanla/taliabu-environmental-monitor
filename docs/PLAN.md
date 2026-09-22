@@ -1131,7 +1131,7 @@ Latest usable scene dapat diperbarui otomatis.
 
 **Completed** — 2026-09-18
 
-- `wrangler.jsonc`: cron trigger `0 6 * * *` (daily 06:00 UTC)
+- `wrangler.jsonc`: cron trigger `0 23 * * *` (daily 23:00 UTC = 08:00 WIT)
 - `worker/index.ts`: `scheduledHandler` — fetch STAC last 30 days → `persistScenes` → D1
 - `worker/routes/scenes.ts`: export `persistScenes` (dedup via `INSERT OR IGNORE` PK)
 - `/api/acquisitions`: baca D1 dulu, fallback STAC hanya saat cache kosong

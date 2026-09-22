@@ -8,6 +8,7 @@
     "dev:worker": "wrangler dev --config wrangler.dev.jsonc --port 8787",
     "build": "vite build",
     "preview": "vite preview",
+    "predeploy": "npx vue-tsc --noEmit",
     "deploy": "vite build && wrangler deploy"
   },
   "dependencies": {

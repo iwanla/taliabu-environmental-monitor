@@ -91,7 +91,7 @@ app.notFound(async (c) => {
   });
 });
 
-// ponytail: cron daily 06:00 UTC — fetch last 30 days, dedup via INSERT OR IGNORE
+// ponytail: cron daily 23:00 UTC (08:00 WIT) — fetch last 30 days, dedup via INSERT OR IGNORE
 async function scheduledHandler(event: ScheduledEvent, env: Env): Promise<void> {
   const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const to = new Date().toISOString().slice(0, 10);
