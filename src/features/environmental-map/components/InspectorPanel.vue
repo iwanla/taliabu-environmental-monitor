@@ -331,6 +331,7 @@ async function copyShare() {
           <div class="metric-row"><span>Version</span><span class="v">{{ getByLayerId(layerId)!.version }}</span></div>
           <div class="metric-row"><span>Updated</span><span class="v">{{ getByLayerId(layerId)!.retrievedAt }}</span></div>
           <div class="metric-row"><span>Refresh</span><span class="v">{{ getByLayerId(layerId)!.refreshPolicy }}</span></div>
+          <div v-if="getByLayerId(layerId)!.license" class="metric-row"><span>License</span><span class="v">{{ getByLayerId(layerId)!.license }}</span></div>
         </template>
       </div>
     </template>

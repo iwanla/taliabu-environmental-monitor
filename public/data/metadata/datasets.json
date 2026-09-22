@@ -8,7 +8,7 @@
     "sourceUpdatedAt": null,
     "version": "1.0.0",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "BIG geoportal public access (UU 4/2011 Informasi Geospasial); attribution required — Sumber: Badan Informasi Geospasial",
     "notes": "Pulau Taliabu main island boundary from BIG 1:25000 scale"
   },
   {
@@ -20,7 +20,7 @@
     "sourceUpdatedAt": null,
     "version": "1.0.0",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "BIG geoportal public access (UU 4/2011 Informasi Geospasial); attribution required — Sumber: Badan Informasi Geospasial",
     "notes": "Kabupaten Pulau Taliabu administrative boundary from BIG 1:25000 scale"
   },
   {
@@ -32,7 +32,7 @@
     "sourceUpdatedAt": null,
     "version": "2026-09",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "BIG geoportal public access (UU 4/2011 Informasi Geospasial); attribution required — Sumber: Badan Informasi Geospasial",
     "notes": "Batas desa/kelurahan Pulau Taliabu, filtered with WADMKK='Pulau Taliabu' AND TIPADM IN (1,2)"
   },
   {
@@ -44,7 +44,7 @@
     "sourceUpdatedAt": null,
     "version": "2026-09",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "BIG geoportal public access (UU 4/2011 Informasi Geospasial); attribution required — Sumber: Badan Informasi Geospasial",
     "notes": "Sungai (Garis), layer 673, filtered to features intersecting Pulau Taliabu"
   },
   {
@@ -56,7 +56,7 @@
     "sourceUpdatedAt": null,
     "version": "2026-09",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "BIG geoportal public access (UU 4/2011 Informasi Geospasial); attribution required — Sumber: Badan Informasi Geospasial",
     "notes": "SUMBERDAYAAIR_DAERAHALIRANSUNGAI, filtered to features intersecting Pulau Taliabu"
   },
   {
@@ -68,7 +68,7 @@
     "sourceUpdatedAt": null,
     "version": "2026-09",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "BIG geoportal public access (UU 4/2011 Informasi Geospasial); attribution required — Sumber: Badan Informasi Geospasial",
     "notes": "Permukiman (titik), BIG layer queried for Pulau Taliabu; no intersecting features returned"
   },
   {
@@ -80,7 +80,7 @@
     "sourceUpdatedAt": null,
     "version": "2026-09",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "BIG geoportal public access (UU 4/2011 Informasi Geospasial); attribution required — Sumber: Badan Informasi Geospasial",
     "notes": "Permukiman (area), filtered to features intersecting Pulau Taliabu"
   },
   {
@@ -92,7 +92,7 @@
     "sourceUpdatedAt": null,
     "version": "2026-09-11",
     "refreshPolicy": "monthly",
-    "license": null,
+    "license": "BIG Kebijakan Satu Peta public access; attribution required — Sumber: BIG / Kebijakan Satu Peta",
     "notes": "Peta Wilayah Izin Usaha Pertambangan, original polygons intersecting Pulau Taliabu"
   },
   {
@@ -104,7 +104,7 @@
     "sourceUpdatedAt": null,
     "version": "1.0.0",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "BIG geoportal public access (UU 4/2011 Informasi Geospasial); attribution required — Sumber: Badan Informasi Geospasial",
     "notes": "Coastline extracted from BIG 1:25000 boundary data"
   },
   {
@@ -116,7 +116,7 @@
     "sourceUpdatedAt": null,
     "version": "1.0.0",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "Derived from DEMNAS (BIG); attribution required — Sumber: BIG. Model output, not surveyed data.",
     "notes": "Preprocessed by scripts/terrain/preprocess.py -> public/data/terrain/{elevation,slope}.png; derived products, datum EGM2008"
   },
   {
@@ -128,7 +128,7 @@
     "sourceUpdatedAt": null,
     "version": "1.0.0",
     "refreshPolicy": "per-scene",
-    "license": null,
+    "license": "Source: Copernicus Sentinel-2 (free, full and open access); attribution required when redistributing — Contains Copernicus Sentinel data.",
     "notes": "Normalized Difference Turbidity Index (Red-Green)/(Red+Green). Remote-sensing proxy for water turbidity, NOT a laboratory measurement; no chemical composition or pollution claim can be derived."
   },
   {
@@ -140,7 +140,7 @@
     "sourceUpdatedAt": null,
     "version": "1.0.0",
     "refreshPolicy": "per-scene",
-    "license": null,
+    "license": "Source: Copernicus Sentinel-2 (free, full and open access); attribution required when redistributing — Contains Copernicus Sentinel data.",
     "notes": "Scene-derived water edge for visual comparison against the BIG baseline coastline; cloud-masked via SCL."
   },
   {
@@ -152,7 +152,7 @@
     "sourceUpdatedAt": null,
     "version": "1.0.0",
     "refreshPolicy": "manual",
-    "license": null,
+    "license": "Derived from DEMNAS (BIG); attribution required — Sumber: BIG. Model output, not surveyed data.",
     "notes": "48 D8-derived stream mouths with modelled catchment area. Nearest IUP and distance to its boundary are runtime analysis using the current mining snapshot; outlet geometry is derived model output, not surveyed data."
   }
 ]

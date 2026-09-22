@@ -44,7 +44,7 @@ function syncMaps(source: MaplibreMap, target: MaplibreMap) {
   syncing = false;
 }
 
-function createMap(container: HTMLDivElement): MaplibreMap {
+function createMap(container: HTMLDivElement, withAttribution: boolean): MaplibreMap {
   const m = new MaplibreMap({
     container,
     style: "https://tiles.openfreemap.org/styles/liberty",
@@ -52,7 +52,9 @@ function createMap(container: HTMLDivElement): MaplibreMap {
     zoom: props.initialView?.zoom ?? 8,
     bearing: props.initialView?.bearing ?? 0,
     pitch: props.initialView?.pitch ?? 0,
-    attributionControl: false,
+    // OSM/OpenFreeMap credit stays visible in compare mode; enabled on one
+    // pane only so attribution is not rendered twice.
+    attributionControl: withAttribution ? { compact: true } : false,
   });
 
   return m;
@@ -162,8 +164,8 @@ function onHandleTouchDown(e: TouchEvent) {
 onMounted(() => {
   if (!mapContainerA.value || !mapContainerB.value) return;
 
-  mapA = createMap(mapContainerA.value);
-  mapB = createMap(mapContainerB.value);
+  mapA = createMap(mapContainerA.value, true);
+  mapB = createMap(mapContainerB.value, false);
 
   mapA.on("load", async () => {
     if (!mapA) return;
