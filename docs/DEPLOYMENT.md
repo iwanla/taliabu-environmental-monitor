@@ -212,6 +212,44 @@ npx wrangler tail
 
 Gunakan endpoint `/api/health` untuk membedakan masalah deployment dari masalah provider. Jika health endpoint gagal, periksa deployment dan binding `DB`. Jika health endpoint berhasil tetapi scene atau render gagal, periksa Worker secrets dan kredensial Copernicus.
 
+### Kuota render harian
+
+```bash
+curl -s https://api.environment.jelajahtaliabu.web.id/api/quota
+```
+
+Respons:
+
+```json
+{"date":"...","renders":0,"failed":0,"cron":null}
+```
+
+- `renders`/`failed`: counter render Copernicus hari ini (UTC). Lonjakan `failed` = periksa `wrangler tail` dan error provider.
+- `cron`: heartbeat discovery terakhir (`{ at, ok, tiles, from, to }` atau `{ at, ok: false, error }`). `ok: false` = STAC gagal saat cron; cron me-rethrow agar platform retry.
+
+### Kesehatan cron
+
+Cron berjalan harian 23:00 UTC (08:00 WIT), mengambil 30 hari terakhir dan dedup via `INSERT OR IGNORE`. Baseline sehat:
+
+- `cron.at` berumur < 25 jam dan `ok: true`;
+- `satellite_scenes` bertambah hanya saat ada overpass baru (revisit Sentinel-2 ~5 hari; tidak ada baris baru selama berhari-hari adalah normal, bukan bukti cron mati);
+- `GET /api/acquisitions/latest` mengembalikan scene ≤ ~10 hari (lebih tua dari itu saat musim awan masih wajar — cek `cloudCover`).
+
+Baca langsung (read-only, aman tanpa otorisasi deploy):
+
+```bash
+npx wrangler d1 execute taliabu-db --remote --json --command \
+  "SELECT COUNT(*) AS scenes, MAX(acquired_at) AS newest FROM satellite_scenes"
+```
+
+### Tail log
+
+```bash
+npx wrangler tail
+```
+
+Log cron berbentuk satu baris JSON (`event: "cron.scene-discovery"`) agar mudah difilter. Log render per-request tidak ditulis untuk menghemat ingestion; volume provider terlihat dari counter `/api/quota`.
+
 ## 10. Custom Domain
 
 Production custom domains sudah didefinisikan di `wrangler.jsonc` (frontend dan API dipisah dengan sengaja; path non-`/api` di host API selalu JSON `404`):

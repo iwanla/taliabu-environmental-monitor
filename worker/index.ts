@@ -49,12 +49,23 @@ app.get("/api/health", (c) => {
 // Provider-quota ledger written by the render route (app_config counters).
 app.get("/api/quota", async (c) => {
   const day = new Date().toISOString().slice(0, 10);
-  const rows = await c.env.DB.prepare(`SELECT key, value FROM app_config WHERE key LIKE ?`)
+  const rows = await c.env.DB.prepare(`SELECT key, value FROM app_config WHERE key LIKE ? OR key = 'cron:last-run'`)
     .bind(`quota:${day}:%`)
     .all<{ key: string; value: string }>();
   const counters: Record<string, number> = {};
-  for (const row of rows.results) counters[row.key.replace(`quota:${day}:`, "")] = Number(row.value);
-  return c.json({ date: day, renders: counters.ok ?? 0, failed: counters.fail ?? 0 });
+  let cron: Record<string, unknown> | null = null;
+  for (const row of rows.results) {
+    if (row.key === "cron:last-run") {
+      try {
+        cron = JSON.parse(row.value) as Record<string, unknown>;
+      } catch {
+        cron = null;
+      }
+    } else {
+      counters[row.key.replace(`quota:${day}:`, "")] = Number(row.value);
+    }
+  }
+  return c.json({ date: day, renders: counters.ok ?? 0, failed: counters.fail ?? 0, cron });
 });
 
 app.route("/api", scenes);
@@ -92,14 +103,30 @@ app.notFound(async (c) => {
 });
 
 // ponytail: cron daily 23:00 UTC (08:00 WIT) — fetch last 30 days, dedup via INSERT OR IGNORE
+async function recordCronHeartbeat(env: Env, data: Record<string, unknown>): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO app_config (key, value) VALUES ('cron:last-run', ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  )
+    .bind(JSON.stringify({ at: new Date().toISOString(), ...data }))
+    .run();
+}
+
 async function scheduledHandler(event: ScheduledEvent, env: Env): Promise<void> {
   const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const to = new Date().toISOString().slice(0, 10);
 
-  const tiles = await searchScenes({ collection: "sentinel-2-l2a", from, to, maxCloudCover: 100 });
-  await persistScenes(env.DB, tiles);
-
-  console.log(`[cron] scene discovery: ${tiles.length} tiles fetched, ${from} → ${to}`);
+  try {
+    const tiles = await searchScenes({ collection: "sentinel-2-l2a", from, to, maxCloudCover: 100 });
+    await persistScenes(env.DB, tiles);
+    await recordCronHeartbeat(env, { ok: true, tiles: tiles.length, from, to });
+    console.log(JSON.stringify({ event: "cron.scene-discovery", ok: true, tiles: tiles.length, from, to }));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    await recordCronHeartbeat(env, { ok: false, error: message, from, to });
+    console.log(JSON.stringify({ event: "cron.scene-discovery", ok: false, error: message }));
+    throw err;
+  }
 }
 
 export default {
