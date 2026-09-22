@@ -356,5 +356,9 @@ export const staticLayers: MapLayerDefinition[] = [
     defaultVisible: false,
     opacity: 0.85,
     source: { type: "raster", evalscriptKey: "sar" },
+    legend: [
+      { label: "VV backscatter → purple", color: "#B14E9E" },
+      { label: "VH backscatter → green", color: "#4E9E51" },
+    ],
   },
 ];

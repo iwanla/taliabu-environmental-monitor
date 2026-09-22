@@ -29,7 +29,9 @@ const DYNAMIC_CATEGORY: Partial<Record<string, LayerCategory>> = {
 };
 
 function mainColor(def: Extract<MapLayerDefinition, { type: "vector" }>): string {
-  const p = def.paint as Record<string, string>;
+  // Raster defs carry legend swatches instead of paint; unknown shapes fall
+  // back to neutral gray rather than throwing inside the legend computed.
+  const p = (def.paint ?? {}) as Record<string, string>;
   return def.layerType === "point"
     ? p["circle-stroke-color"] ?? p["circle-color"] ?? "#888"
     : p["fill-color"] ?? p["line-color"] ?? "#888";

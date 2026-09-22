@@ -1261,6 +1261,27 @@ User dapat:
 14. mengetahui source dan acquisition date setiap hasil;
 15. menggunakan aplikasi tanpa dependency infrastruktur berbayar.
 
+## Status
+
+**In progress** — 20.1–20.6 complete; 20.7 acceptance run executed 2026-09-22 (see below).
+
+- 20.1 deployment hygiene (`4860d4d`): cron docs/comment aligned to live 23:00 UTC (08:00 WIT); `DEPLOYMENT.md` dual-domain + no-placeholder-DB; `predeploy` typecheck guard, verified via dry-run chain.
+- 20.2 error handling (`eb371ca`): `INVALID_BODY` guard, tile date validation, cloud clamp; `src/shared/render-errors.ts` friendly copy wired into change/analytics/compare paths.
+- 20.3 observability (`6505dd3`): `cron:last-run` heartbeat + structured log; `/api/quota` exposes `{ renders, failed, cron }`; runbook in `DEPLOYMENT.md` §9.
+- 20.4 licensing (`68d5323`): all 13 `datasets.json` licenses filled (zero nulls); compare-mode attribution restored; License row in inspector.
+- 20.5 accessibility (`4449171`): keyboard-operable category headers + compare slider; named switches/sliders; contrast measured 14:1/15.3:1/5.8:1 (AA pass).
+- 20.6 responsive QA: 390/768/1440 viewports — no overflow, overlay panels fit, full grid correct; no code changes needed.
+
+### 20.7 production acceptance run (2026-09-22, all 15 criteria PASS)
+
+Executed live against `environment.jelajahtaliabu.web.id` + API host. Evidence screenshot: `phase20-prod-01-vector.png`.
+
+- API/host separation: main `/` 200, main `/api/health` 404, API unknown path 404 JSON, `/wp-admin` 403 blocked at edge (WAF).
+- (1) Single URL loads, title + map canvas OK. (2) Island + villages + permits + legend + attribution visible. (3) Header shows latest 2026-09-19, cloud 21.5%. (4) Historical scene 2026-09-04 selectable (active chip). (5) NDVI, MNDWI, SWIR, SAR toggles on; 36/36 raster tiles HTTP 200. (6) Compare swipe mounts 2 panes, labels 09-04/09-19, URL state `?compare=on&sceneB=…`, exits cleanly. (7) AOI draw via real mouse clicks → 339 ha + full metrics (IUP 27.2%, river 77 m, watershed, elevation, slope, downstream); oversize 21,681 ha polygon correctly rejected with limit message. (8) Permit/river/watershed/coast context in AOI metrics. (9) Change detection ran: 1.4 ha, method + window + source + proxy disclaimer; low-confidence case correctly shows "Too cloudy to judge". (10) Mining Impact activates (button flips to Exit). (11) Land-cover analytics with provenance line (`sentinel-2 l2a · ndvi & mndwi · acquired 2026-09-19`). (12) Alert log lists saved Vegetation loss 18.2 ha · 2026-09-14. (13) CSV + JSON exports download with stamped filenames. (14) Source + acquisition date on metrics, change result, alerts, exports. (15) Only bindings are ASSETS + D1 (free tier); no KV/R2/AI/queues/workflows.
+- Whole run consumed **8 provider renders, 0 failed** (`/api/quota`) — within free-tier expectation.
+- Finding (fixed same day): toggling SAR threw `TypeError: reading 'fill-color'` from `MapLegend.mainColor` — SAR def had no legend/paint. Fixed via SAR legend swatches + neutral-gray fallback; verified 0 console errors after fix.
+- Finding (pending deploy): production build predates 20.2–20.5 (compare slider lacks `role="slider"`; fix verified in dev, not yet live). Recommend `npm run deploy` with explicit authorization to ship 20.1–20.6 + legend fix.
+
 # Milestone Summary
 
 ```text
