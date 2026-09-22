@@ -113,6 +113,7 @@ python outlets.py         # muara D8 + luas catchment
 | Endpoint | Fungsi |
 |---|---|
 | `GET /api/health` | Status layanan |
+| `GET /api/quota` | Counter render harian (renders, failed) |
 | `GET /api/scenes` | Pencarian scene STAC (cache D1, fallback baca cache) |
 | `POST /api/render` | Render raster Sentinel Hub (evalscript: ndvi, mndwi, ndti, dll.), dicatat di `analysis_runs` |
 | `GET /api/render/tile/:z/:x/:y` | Tile raster untuk peta |
@@ -135,8 +136,8 @@ Rencana lengkap dan status tiap fase ada di [docs/PLAN.md](docs/PLAN.md).
 | 16 | Export dan evidence (PNG, CSV, GeoJSON, JSON, share URL) | Selesai |
 | 17 | Scheduled discovery | Selesai |
 | 18 | Cloudflare security hardening | Selesai |
-| 19 | Performance dan free-tier hardening | Berikutnya |
-| 20 | Production readiness | Pending |
+| 19 | Performance dan free-tier hardening (dedup, cache, guard, quota) | Selesai |
+| 20 | Production readiness | Berikutnya |
 
 ## Deployment
 
