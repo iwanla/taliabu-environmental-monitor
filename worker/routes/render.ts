@@ -68,6 +68,12 @@ function isDateString(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 }
 
+function clampCloud(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 100;
+  return Math.min(100, Math.max(0, n));
+}
+
 function tilesIntersectBounds(tile: [number, number, number, number]): boolean {
   const [lw, ls, le, ln] = RENDER_BBOX_LIMIT;
   return tile[0] < le && tile[2] > lw && tile[1] < ln && tile[3] > ls;
@@ -84,7 +90,7 @@ render.post("/render", async (c) => {
     );
   }
 
-  const body = await c.req.json<{
+  let body: {
     bbox?: [number, number, number, number];
     from?: string;
     to?: string;
@@ -92,7 +98,12 @@ render.post("/render", async (c) => {
     width?: number;
     height?: number;
     type?: string;
-  }>();
+  };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "INVALID_BODY", message: "Request body must be valid JSON." }, 400);
+  }
 
   const type = body.type ?? "true-color";
   if (!VALID_TYPES.includes(type)) {
@@ -115,7 +126,7 @@ render.post("/render", async (c) => {
   if (!isDateString(from) || !isDateString(to) || from > to) {
     return c.json({ error: "INVALID_TIMERANGE", message: "from/to must be YYYY-MM-DD with from <= to." }, 400);
   }
-  const maxCloudCoverage = body.maxCloudCoverage ?? 100;
+  const maxCloudCoverage = clampCloud(body.maxCloudCoverage);
   const width = clampDimension(body.width);
   const height = clampDimension(body.height);
 
@@ -218,6 +229,9 @@ render.get("/render/tile/:z/:x/:y", async (c) => {
   if (!from || !to) {
     return c.json({ error: "MISSING_TIMERANGE", message: "from (and optionally to) query params required." }, 400);
   }
+  if (!isDateString(from) || !isDateString(to) || from > to) {
+    return c.json({ error: "INVALID_TIMERANGE", message: "from/to must be YYYY-MM-DD with from <= to." }, 400);
+  }
 
   const lat = (t: number) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * t) / n))) * 180) / Math.PI;
   const bbox: [number, number, number, number] = [
@@ -238,7 +252,7 @@ render.get("/render/tile/:z/:x/:y", async (c) => {
       bbox,
       from,
       to,
-      maxCloudCoverage: Number(c.req.query("maxCloud") ?? 100),
+      maxCloudCoverage: clampCloud(c.req.query("maxCloud")),
       width: 256,
       height: 256,
       type,

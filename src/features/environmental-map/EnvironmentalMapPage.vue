@@ -16,6 +16,7 @@ import { runChangeDetection, type ChangeResult, type ChangeType } from "./compos
 import { computeLandCover, type AnalyticsScope, type LandCover } from "./composables/analytics";
 import type { BasemapMode } from "@/shared/types/layers";
 import { apiUrl } from "@/shared/api";
+import { RenderError } from "@/shared/render-errors";
 import { useLayers } from "./composables/useLayers";
 import { buildShareUrl, decodeAoi, downloadBlob, exportFileStamp, exportMapPng, exportStamp } from "./composables/export";
 
@@ -160,8 +161,8 @@ watch([analyticsScope, () => selectedScene.value?.date, viewportKey, aoi, select
       const result = await computeLandCover(scope, shape!, date);
       analyticsCache.set(key, result);
       analyticsResult.value = result;
-    } catch {
-      analyticsError.value = "Metrics unavailable for this scene";
+    } catch (err) {
+      analyticsError.value = err instanceof RenderError ? err.message : "Metrics unavailable for this scene";
     }
     analyticsLoading.value = false;
   }, 600);

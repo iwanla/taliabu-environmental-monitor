@@ -1,8 +1,10 @@
 import { bbox } from "@turf/turf";
 import { apiUrl } from "@/shared/api";
+import { RenderError, throwFriendlyRenderError } from "@/shared/render-errors";
 import { CHANGE_RULES, diffPixels, type ChangeType } from "./changeDetectionCore";
 
 export { CHANGE_RULES, diffPixels, type ChangeType } from "./changeDetectionCore";
+export { RenderError } from "@/shared/render-errors";
 
 export interface ChangeResult {
   type: ChangeType;
@@ -23,7 +25,7 @@ export async function renderRaw(metric: "ndvi-raw" | "mndwi-raw", date: string, 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ bbox: box, from, to, maxCloudCoverage: 100, width: 512, height: 512, type: metric }),
   });
-  if (!res.ok) throw new Error(`render ${metric} @ ${date}: HTTP ${res.status}`);
+  if (!res.ok) await throwFriendlyRenderError(res);
   const bitmap = await createImageBitmap(await res.blob());
   const canvas = new OffscreenCanvas(512, 512);
   const ctx = canvas.getContext("2d")!;

@@ -4,6 +4,7 @@ import { Map as MaplibreMap, LngLatBounds } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { MapViewCamera, SatelliteAcquisition } from "./MapView.vue";
 import { apiUrl } from "@/shared/api";
+import { throwFriendlyRenderError } from "@/shared/render-errors";
 
 const props = defineProps<{
   sceneA: SatelliteAcquisition;
@@ -19,6 +20,7 @@ let mapA: MaplibreMap | null = null;
 let mapB: MaplibreMap | null = null;
 const splitPos = ref(50);
 let syncing = false;
+const renderError = ref<string | null>(null);
 
 const RASTER_BBOX: [number, number, number, number] = [123.8, -2.5, 125.8, -1.0];
 const RASTER_COORDS: [[number, number], [number, number], [number, number], [number, number]] = [
@@ -93,9 +95,17 @@ async function renderScene(map: MaplibreMap, scene: SatelliteAcquisition, source
       }),
     });
 
-    if (!res.ok) return;
+    if (!res.ok) {
+      try {
+        await throwFriendlyRenderError(res);
+      } catch (err) {
+        renderError.value = err instanceof Error ? err.message : "Scene imagery failed to load.";
+      }
+      return;
+    }
 
     const blob = await res.blob();
+    renderError.value = null;
     const imageUrl = URL.createObjectURL(blob);
 
     map.addSource(sourceId, {
@@ -109,7 +119,7 @@ async function renderScene(map: MaplibreMap, scene: SatelliteAcquisition, source
       "boundary-fill",
     );
   } catch {
-    // silent fail
+    renderError.value = "Scene imagery failed to load — check connection and retry.";
   }
 }
 
@@ -211,6 +221,7 @@ onUnmounted(() => {
       <span class="label-a">{{ sceneA.acquiredAt.slice(0, 10) }}</span>
       <span class="label-b">{{ sceneB.acquiredAt.slice(0, 10) }}</span>
     </div>
+    <div v-if="renderError" class="compare-error" role="alert">{{ renderError }}</div>
 
     <div
       v-if="(mode ?? 'swipe') === 'swipe'"
@@ -285,6 +296,23 @@ onUnmounted(() => {
 
 .label-b {
   color: var(--ink-soft);
+}
+
+.compare-error {
+  position: absolute;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  max-width: min(480px, 90%);
+  padding: 8px 14px;
+  border-radius: 4px;
+  background: var(--paper-raised);
+  border: 1px solid var(--accent-alert);
+  color: var(--status-low);
+  font-size: 13px;
+  text-align: center;
+  pointer-events: none;
 }
 
 .compare-handle {
