@@ -1263,7 +1263,9 @@ User dapat:
 
 ## Status
 
-**In progress** — 20.1–20.6 complete; 20.7 acceptance run executed 2026-09-22 (see below).
+**Completed** — 2026-09-22 (deployed; version `1063a720`).
+
+20.1–20.6 complete; 20.7 acceptance run executed 2026-09-22 (see below).
 
 - 20.1 deployment hygiene (`4860d4d`): cron docs/comment aligned to live 23:00 UTC (08:00 WIT); `DEPLOYMENT.md` dual-domain + no-placeholder-DB; `predeploy` typecheck guard, verified via dry-run chain.
 - 20.2 error handling (`eb371ca`): `INVALID_BODY` guard, tile date validation, cloud clamp; `src/shared/render-errors.ts` friendly copy wired into change/analytics/compare paths.
@@ -1281,6 +1283,12 @@ Executed live against `environment.jelajahtaliabu.web.id` + API host. Evidence s
 - Whole run consumed **8 provider renders, 0 failed** (`/api/quota`) — within free-tier expectation.
 - Finding (fixed same day): toggling SAR threw `TypeError: reading 'fill-color'` from `MapLegend.mainColor` — SAR def had no legend/paint. Fixed via SAR legend swatches + neutral-gray fallback; verified 0 console errors after fix.
 - Finding (pending deploy): production build predates 20.2–20.5 (compare slider lacks `role="slider"`; fix verified in dev, not yet live). Recommend `npm run deploy` with explicit authorization to ship 20.1–20.6 + legend fix.
+
+### Deploy + post-deploy verification (2026-09-22, authorized)
+
+- `npm run deploy` green (predeploy typecheck → build → upload 4 changed assets). Version `1063a720`; cron `0 23 * * *` confirmed live; no D1 migration needed (remote already applied).
+- Post-deploy smoke: API health ok, quota `{ renders: 8, failed: 0, cron: null }` (heartbeat appears after tonight's first cron on the new build), main `/` 200, main `/api/health` 404, `.env`/`wp-admin`/`foo.php` all 403 at edge.
+- Prod browser check: SAR toggles on, compare slider with `role="slider"` present, no compare error notice, 0 console errors. Phase 20 closed.
 
 # Milestone Summary
 
