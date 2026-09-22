@@ -145,6 +145,22 @@ function onHandleDown(e: MouseEvent) {
   document.body.style.userSelect = "none";
 }
 
+function onHandleKeydown(e: KeyboardEvent) {
+  if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+    splitPos.value = Math.max(5, splitPos.value - 5);
+    e.preventDefault();
+  } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+    splitPos.value = Math.min(95, splitPos.value + 5);
+    e.preventDefault();
+  } else if (e.key === "Home") {
+    splitPos.value = 5;
+    e.preventDefault();
+  } else if (e.key === "End") {
+    splitPos.value = 95;
+    e.preventDefault();
+  }
+}
+
 function onHandleTouchDown(e: TouchEvent) {
   e.preventDefault();
   const onMove = (ev: TouchEvent) => {
@@ -229,9 +245,16 @@ onUnmounted(() => {
       v-if="(mode ?? 'swipe') === 'swipe'"
       ref="handleRef"
       class="compare-handle"
+      role="slider"
+      tabindex="0"
+      aria-label="Comparison split position"
+      :aria-valuenow="Math.round(splitPos)"
+      aria-valuemin="5"
+      aria-valuemax="95"
       :style="{ left: splitPos + '%' }"
       @mousedown="onHandleDown"
       @touchstart="onHandleTouchDown"
+      @keydown="onHandleKeydown"
     >
       <div class="handle-line" />
       <div class="handle-grip">

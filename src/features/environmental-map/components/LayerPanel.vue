@@ -49,11 +49,11 @@ const openDetails = ref<Record<string, boolean>>({});
     </div>
 
     <template v-for="cat in categories" :key="cat.id">
-      <div v-if="getByCategory(cat.id).length > 0" class="cat-header" @click="toggleCollapse(cat.id)">
-        <span class="dot" :style="{ background: cat.color }"></span>
+      <button v-if="getByCategory(cat.id).length > 0" class="cat-header" type="button" :aria-expanded="!collapsed.has(cat.id)" @click="toggleCollapse(cat.id)">
+        <span class="dot" :style="{ background: cat.color }" aria-hidden="true"></span>
         {{ cat.label }}
-        <span class="chevron" :class="{ collapsed: collapsed.has(cat.id) }">▸</span>
-      </div>
+        <span class="chevron" :class="{ collapsed: collapsed.has(cat.id) }" aria-hidden="true">▸</span>
+      </button>
       <template v-if="!collapsed.has(cat.id)">
         <template v-for="layer in getByCategory(cat.id)" :key="layer.id">
           <div class="layer-row">
@@ -75,6 +75,7 @@ const openDetails = ref<Record<string, boolean>>({});
               <input
                 type="checkbox"
                 :checked="isVisible(layer.id)"
+                :aria-label="`Toggle ${layer.name} layer`"
                 @change="toggleLayer(layer.id)"
               >
               <span class="track"></span>
@@ -92,6 +93,7 @@ const openDetails = ref<Record<string, boolean>>({});
                 type="range"
                 min="0"
                 max="100"
+                :aria-label="`${layer.name} opacity`"
                 :value="getOpacity(layer.id) * 100"
                 @input="setOpacity(layer.id, Number(($event.target as HTMLInputElement).value) / 100)"
               >
@@ -175,6 +177,11 @@ const openDetails = ref<Record<string, boolean>>({});
 }
 
 .cat-header {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink-faint);
